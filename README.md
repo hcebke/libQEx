@@ -1,4 +1,4 @@
-libQEx
+libQEx – A Robust Quad Mesh Extractor
 ======
 
 `libQEx` is an implementation of QEx [Ebke et al. 2013] distributed under GPLv3. Commercial licensing is available upon request.
