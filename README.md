@@ -3,6 +3,30 @@ libQEx – A Robust Quad Mesh Extractor
 
 `libQEx` is an implementation of [QEx](http://www.rwth-graphics.de/publication/204/) \[[Ebke et al. 2013](http://dx.doi.org/10.1145/2508363.2508372)\] distributed under GPLv3. Commercial licensing is available upon request.
 
+If you make use of `libQEx` in your scientific work, please cite our paper. For your convenience,
+you can use the following bibtex snippet:
+
+    @inproceedings{Ebke:2013:QEX:2508363.2508372,
+     author = {Ebke, Hans-Christian and Bommes, David and Campen, Marcel and Kobbelt, Leif},
+     title = {QEx: Robust Quad Mesh Extraction},
+     booktitle = {Proceedings of the 2013 SIGGRAPH Asia Conference},
+     series = {SA '13},
+     year = {2013},
+     isbn = {978-1-4503-2481-6},
+     location = {Hong Kong, Hong Kong},
+     numpages = {10},
+     url = {http://doi.acm.org/10.1145/2508363.2508372},
+     doi = {10.1145/2508363.2508372},
+     publisher = {ACM},
+     address = {New York, NY, USA},
+     keywords = {quad extraction, quad meshing, integer-grid maps},
+    }
+    #These details I have not received, yet.
+    #pages = {77:1--77:10},
+    #articleno = {77},
+    #acmid = {},
+
+
 ## What is QEx?
 
 QEx (pronounced \'kyü-eks\\) is a method for robust quad mesh extraction from Integer-Grid Maps with imperfections.
@@ -27,6 +51,9 @@ don't care about the details and just need results.
 the terms of the GNU General Public License as published by the Free
 Software Foundation, either version 3 of the License, or (at your
 option) any later version. See [http://www.gnu.org/licenses/](http://www.gnu.org/licenses/).
+
+If you make use of `libQEx` in scientific work we kindly ask you to cite our
+paper. (You can use the bibtex snippet above.)
 
 *Commercial licensing* under negotiable terms is available upon request. Please send an email to [ebke@cs.rwth-aachen.de](mailto:ebke@cs.rwth-aachen.de) if you are interested.
 
