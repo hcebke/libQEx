@@ -1,7 +1,7 @@
 libQEx – A Robust Quad Mesh Extractor
 ======
 
-`libQEx` is an implementation of QEx [Ebke et al. 2013] distributed under GPLv3. Commercial licensing is available upon request.
+`libQEx` is an implementation of [QEx](http://www.rwth-graphics.de/publication/204/) \[[Ebke et al. 2013](http://dx.doi.org/10.1145/1576246.1531383)\] distributed under GPLv3. Commercial licensing is available upon request.
 
 ## What is QEx?
 
@@ -12,12 +12,12 @@ our own [Mixed-Integer Quadrangulation](http://www.rwth-graphics.de/publication/
 \[[Bommes et al. 2009](http://dx.doi.org/10.1145/1576246.1531383)\].
 
 Quad extraction is often believed to be a trivial matter but quite the
-opposite is true: Numerous special cases, ambiguities induced by
+opposite is true: numerous special cases, ambiguities induced by
 numerical inaccuracies and limited solver precision, as well as imperfections in the
 maps produced by most methods (unless costly countermeasures are taken)
 pose significant challenges to the quad extractor.
 
-Read our paper if you want to find out why quad extraction is complicated and
+Read [our paper](http://www.rwth-graphics.de/publication/204/) if you want to find out why quad extraction is complicated and
 how we tackle it or skip ahead and download the source code if you
 don't care about the details and just need results.
 
@@ -33,10 +33,8 @@ option) any later version. See [http://www.gnu.org/licenses/](http://www.gnu.org
 
 ## Bibliography
 
-<a href="http://dx.doi.org/10.1145/1576246.1531383">
-Bommes, D., Zimmer, H., and Kobbelt, L. 2009. Mixed-integer quadrangulation. In Proc. SIGGRAPH 2009.
-</a>
+[Bommes, D., Zimmer, H., and Kobbelt, L. 2009. Mixed-integer quadrangulation. In Proc. SIGGRAPH 2009.](http://dx.doi.org/10.1145/1576246.1531383)
 
-<a href="http://dx.doi.org/10.1111/j.1467-8659.2007.01060.x">
-Kälberer, F., Nieser, M., and Polthier , K. 2007. Quadcover - surface parameterization using branched coverings. Computer Graphics Forum 26, 3, 375–384.
-</a>
+[Ebke, H.-C., Bommes, D., Campen, M., and Kobbelt, L. 2013. QEx: Robust Quad Mesh Extraction. In Proc. SIGGRAPH Asia 2013.](http://dx.doi.org/10.1145/2508363.2508372)
+
+[Kälberer, F., Nieser, M., and Polthier , K. 2007. Quadcover - surface parameterization using branched coverings. Computer Graphics Forum 26, 3, 375–384.](http://dx.doi.org/10.1111/j.1467-8659.2007.01060.x)
