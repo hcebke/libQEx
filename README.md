@@ -8,7 +8,7 @@ you can use the following bibtex snippet:
 
     @inproceedings{Ebke:2013:QEX:2508363.2508372,
      author = {Ebke, Hans-Christian and Bommes, David and Campen, Marcel and Kobbelt, Leif},
-     title = {QEx: Robust Quad Mesh Extraction},
+     title = {{QE}x: Robust Quad Mesh Extraction},
      booktitle = {Proceedings of the 2013 SIGGRAPH Asia Conference},
      series = {SA '13},
      year = {2013},
