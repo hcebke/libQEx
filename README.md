@@ -13,19 +13,17 @@ you can use the following bibtex snippet:
      series = {SA '13},
      year = {2013},
      isbn = {978-1-4503-2481-6},
+     pages = {168:1--168:10},
+     articleno = {168},
      location = {Hong Kong, Hong Kong},
      numpages = {10},
      url = {http://doi.acm.org/10.1145/2508363.2508372},
      doi = {10.1145/2508363.2508372},
+     acmid = {2508372},
      publisher = {ACM},
      address = {New York, NY, USA},
      keywords = {quad extraction, quad meshing, integer-grid maps},
     }
-    #These details I have not received, yet.
-    #pages = {77:1--77:10},
-    #articleno = {77},
-    #acmid = {},
-
 
 ## What is QEx?
 
