@@ -38,15 +38,6 @@ class QExGlobals {
         }
 };
 
-/**
- * @brief Contains convenient declaration of property managers.
- */
-template<typename MeshT>
-class PropMgr {
-    public:
-        typedef OpenMesh::PropertyManager<OpenMesh::HPropHandleT<Vec2i>, MeshT> LocalUvsPropertyManager;
-};
-
 } /* namespace QEx */
 
 #endif /* GLOBALS_HH_ */

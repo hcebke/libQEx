@@ -25,6 +25,7 @@
 
 //== INCLUDES =================================================================
 
+#include "../interfaces/c/qex.h"
 #include "TransitionFunction.hh"
 #include "Algebra.hh"
 #include "Vector.hh"
@@ -129,7 +130,7 @@ class MeshExtractorT {
         void extract(
                 std::vector<double>& _uv_coords,   // input uv-coordinates
                 typename PropMgr<PolyMeshT>::LocalUvsPropertyManager &heLocalUvProp,
-                PolyMeshT& _quad_mesh);
+                PolyMeshT& _quad_mesh, const std::vector<unsigned int> * const _external_valences = 0);
 
         /**
          * @brief Analyze parametrization and return some statistics.
@@ -494,7 +495,7 @@ class MeshExtractorT {
 
         // generate GridVertices and their local edge information
         // vertex_to_face_ and edge_to_face_ are initialized for use in generate_edges
-        void generate_vertices(std::vector<double>& _uv_coords);
+        void generate_vertices(std::vector<double>& _uv_coords, const std::vector<unsigned int> * const _external_valences);
 
         // generate connections between GridVertices (connect local outgoing edges)
         void generate_connections(std::vector<double>& _uv_coords);
@@ -533,7 +534,8 @@ class MeshExtractorT {
         void construct_local_edge_information_edge(GridVertex& _gv,
                 const std::vector<double>& _uv_coords);
         void construct_local_edge_information_vertex(GridVertex& _gv,
-                const std::vector<double>& _uv_coords);
+                const std::vector<double>& _uv_coords,
+                const std::vector<unsigned int> * const _external_valences);
 
         inline void reverseApply(Point_2 &p1, Point_2 &p2, const TF &accumulated_tf) {
             TF inverse_tf = accumulated_tf.inverse();

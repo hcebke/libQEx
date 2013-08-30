@@ -20,6 +20,9 @@
 
 /// @file
 
+#ifndef QEX_H_INCLUDED
+#define QEX_H_INCLUDED
+
 #ifdef __cplusplus
 #include <cstddef>
 #include <OpenMesh/Core/Mesh/Traits.hh>
@@ -136,18 +139,106 @@ void qex_extractQuadMesh(qex_TriMesh const * in_triMesh, qex_Valence *in_vertexV
 #ifdef __cplusplus
 } // extern "C"
 
+#include <OpenMesh/Core/Utils/Property.hh>
+#include <OpenMesh/Core/Utils/PropertyManager.hh>
+#include <OpenMesh/Core/Geometry/VectorT.hh>
 
 namespace QEx {
+
+typedef OpenMesh::VectorT<signed int,2> Vec2i;
+
+/**
+ * @brief Contains convenient declaration of property managers.
+ */
+template<typename MeshT>
+class PropMgr {
+    public:
+        typedef OpenMesh::PropertyManager<OpenMesh::HPropHandleT<Vec2i>, MeshT> LocalUvsPropertyManager;
+};
+
+/**
+ * Extract a poly mesh from the given triangle mesh using the supplied per-halfedge UVs as
+ * the (relaxed) integer grid map. This performs all steps described in the paper up to and
+ * including "Extracting Q-Faces". For perfect integer-grid parametrizations this already
+ * generates a quad mesh. For relaxed integer-grid parametrizations this generates a mesh
+ * which may contain n-gon faces (with n != 4).
+ *
+ * This function is mainly intended for debugging purposes. In most cases, extractQuadMeshOM()
+ * is the function you want to call.
+ *
+ * @param in_triMesh @see extractQuadMeshOM()
+ * @param in_uvs @see extractQuadMeshOM()
+ * @param in_vertexValences @see extractQuadMeshOM()
+ * @param out_quadMesh @see extractQuadMeshOM()
+ * @param heLocalUvProp A property manager used to store the local UVs for later processing.
+ */
+void extractPolyMesh(TriMesh_t in_triMesh, const_UVVector_t in_uvs, const_ValenceVector_t in_vertexValences,
+                     QuadMesh_t out_quadMesh, typename QEx::PropMgr<QuadMesh>::LocalUvsPropertyManager &heLocalUvProp);
+
+/**
+ * Performs the "Vertex Merging" and "Q-Edge Recovery" steps described in the paper.
+ * Executing extractPolyMesh() first and then this function is equivalent to
+ * executing extractQuadMeshOM().
+ *
+ * @param inout_polyMesh The poly mesh which will be transformed into a quad mesh.
+ * @param heLocalUvProp The local UVs used to perform the merging.
+ */
+void mergePolyToQuad(QuadMesh_t inout_polyMesh, typename QEx::PropMgr<QuadMesh>::LocalUvsPropertyManager &heLocalUvProp);
 
 /**
  * @brief (Semi-)Generic version of extractQuadMeshOM(). Usable with different but identical traits.
  * @see extractQuadMeshOM
  */
 template<typename TriMeshT, typename QuadMeshT>
-inline void extractQuadMeshOMT(TriMeshT *in_triMesh, const_UVVector_t in_uvs, const_ValenceVector_t in_vertexValences, QuadMeshT *out_quadMesh) {
-    extractQuadMeshOM(OpenMesh::MeshCast<TriMesh_t, TriMeshT*>::cast(in_triMesh), in_uvs, in_vertexValences, OpenMesh::MeshCast<QuadMesh_t, QuadMeshT*>::cast(out_quadMesh));
+inline void extractQuadMeshOMT(TriMeshT *in_triMesh, const_UVVector_t in_uvs,
+                               const_ValenceVector_t in_vertexValences,
+                               QuadMeshT *out_quadMesh) {
+    extractQuadMeshOM(OpenMesh::MeshCast<TriMesh_t, TriMeshT*>::cast(in_triMesh),
+                      in_uvs, in_vertexValences,
+                      OpenMesh::MeshCast<QuadMesh_t, QuadMeshT*>::cast(out_quadMesh));
+}
+
+template<typename TriMeshT, typename QuadMeshT>
+void extractPolyMeshT(TriMeshT *in_triMesh, const_UVVector_t in_uvs, const_ValenceVector_t in_vertexValences,
+                      QuadMeshT *out_quadMesh, typename QEx::PropMgr<QuadMeshT>::LocalUvsPropertyManager &heLocalUvProp) {
+    extractPolyMesh(OpenMesh::MeshCast<TriMesh_t, TriMeshT*>::cast(in_triMesh),
+                    in_uvs, in_vertexValences,
+                    OpenMesh::MeshCast<QuadMesh_t, QuadMeshT*>::cast(out_quadMesh),
+
+                    /*
+                     * This reinterpret_cast here might seem like an awful hack
+                     * but since QuadMesh_T and QuadMeshT* are binary compatible
+                     * (since otherwise the MeshCast above wouldn't compile)
+                     * so must be the property managers of both types.
+                     *
+                     * From a software engineering point of view it would be
+                     * nicer to provide an explicit cast in the PropertyManager
+                     * class which uses the same mechanics as MeshCast to
+                     * determine compatibility.
+                     */
+                    reinterpret_cast<typename QEx::PropMgr<QuadMesh>::LocalUvsPropertyManager&>(heLocalUvProp));
+}
+
+template<typename QuadMeshT>
+void mergePolyToQuadT(QuadMeshT *inout_polyMesh, typename QEx::PropMgr<QuadMeshT>::LocalUvsPropertyManager &heLocalUvProp) {
+    mergePolyToQuad(OpenMesh::MeshCast<QuadMesh_t, QuadMeshT*>::cast(inout_polyMesh),
+
+                    /*
+                     * This reinterpret_cast here might seem like an awful hack
+                     * but since QuadMesh_T and QuadMeshT* are binary compatible
+                     * (since otherwise the MeshCast above wouldn't compile)
+                     * so must be the property managers of both types.
+                     *
+                     * From a software engineering point of view it would be
+                     * nicer to provide an explicit cast in the PropertyManager
+                     * class which uses the same mechanics as MeshCast to
+                     * determine compatibility.
+                     */
+                    reinterpret_cast<typename QEx::PropMgr<QuadMesh>::LocalUvsPropertyManager&>(heLocalUvProp));
 }
 
 } /* namespace QEx */
 
-#endif
+#endif // __cplusplus
+
+#endif // QEX_H_INCLUDED

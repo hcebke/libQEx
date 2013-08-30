@@ -72,7 +72,7 @@ template<class TMeshT>
 template<class PolyMeshT>
 void MeshExtractorT<TMeshT>::extract(std::vector<double>& _uv_coords,
         typename PropMgr<PolyMeshT>::LocalUvsPropertyManager &heLocalUvProp,
-        PolyMeshT& _quad_mesh) {
+        PolyMeshT& _quad_mesh, const std::vector<unsigned int> * const _external_valences) {
 
     //perturbate_degenerate_faces(_uv_coords);
 
@@ -89,7 +89,7 @@ void MeshExtractorT<TMeshT>::extract(std::vector<double>& _uv_coords,
     // --------------------------------------------------------
     // 3. generate quadmesh-vertices (and local edge information)
     // --------------------------------------------------------
-    generate_vertices(_uv_coords);
+    generate_vertices(_uv_coords, _external_valences);
 
     // --------------------------------------------------------
     // 4. generate quadmesh-edges
@@ -498,7 +498,7 @@ std::string MeshExtractorT<TMeshT>::getParametrizationStats(std::vector<double>&
 }
 
 template<class TMeshT>
-void MeshExtractorT<TMeshT>::generate_vertices(std::vector<double>& _uv_coords) {
+void MeshExtractorT<TMeshT>::generate_vertices(std::vector<double>& _uv_coords, const std::vector<unsigned int> * const _external_valences) {
 
     tri_mesh_.request_face_colors();
 
@@ -772,7 +772,7 @@ void MeshExtractorT<TMeshT>::generate_vertices(std::vector<double>& _uv_coords) 
             gvertices_.push_back(
                     GridVertex(GridVertex::OnVertex, heh, p, tri_mesh_.point(vh), false));
             // construct local edge information
-            construct_local_edge_information_vertex(gvertices_.back(), _uv_coords);
+            construct_local_edge_information_vertex(gvertices_.back(), _uv_coords, _external_valences);
 
 #if !defined(NDEBUG) && DEBUG_VERBOSITY >= 2
             if (verbose && tri_mesh_.status(vh).selected())
@@ -967,7 +967,7 @@ void MeshExtractorT<TMeshT>::construct_local_edge_information_edge(GridVertex& _
 template<class TMeshT>
 void
 MeshExtractorT<TMeshT>::
-construct_local_edge_information_vertex(GridVertex& _gv, const std::vector<double>& _uv_coords)
+construct_local_edge_information_vertex(GridVertex& _gv, const std::vector<double>& _uv_coords, const std::vector<unsigned int> * const _external_valences)
 {
   // clear old data
   _gv.local_edges.clear(); _gv.local_edges.reserve(4);
@@ -1163,7 +1163,8 @@ construct_local_edge_information_vertex(GridVertex& _gv, const std::vector<doubl
      */
     // assert(_gv.is_boundary || fabs(ninetyJump - round(ninetyJump)) < 1e-6);
 
-    const int expected_lei_count = round(ninetyJump);
+    const int expected_lei_count =
+            _external_valences ? (*_external_valences)[vh.idx()] : static_cast<unsigned int>(round(ninetyJump));
     _gv.missing_leis = expected_lei_count - static_cast<int>(_gv.local_edges.size());
     /*
      * This heuristic doesn't work for boundary vertices (due to
