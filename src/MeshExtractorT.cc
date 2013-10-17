@@ -28,6 +28,7 @@
 
 #include "MeshExtractorT.hh"
 
+#include <math.h>
 #include <cmath>
 #include <sstream>
 #include <map>
@@ -1162,9 +1163,9 @@ construct_local_edge_information_vertex(GridVertex& _gv, const std::vector<doubl
      * count on the number of expected LEIs we determine here.
      */
     // assert(_gv.is_boundary || fabs(ninetyJump - round(ninetyJump)) < 1e-6);
-
+	
     const int expected_lei_count =
-            _external_valences ? (*_external_valences)[vh.idx()] : static_cast<unsigned int>(round(ninetyJump));
+            _external_valences ? (*_external_valences)[vh.idx()] : static_cast<unsigned int>(ROUND_QME(ninetyJump));
     _gv.missing_leis = expected_lei_count - static_cast<int>(_gv.local_edges.size());
     /*
      * This heuristic doesn't work for boundary vertices (due to
@@ -2903,7 +2904,7 @@ typename MeshExtractorT<TMeshT>::LocalEdgeInfo *MeshExtractorT<TMeshT>::getNextC
 
 template<class TMeshT>
 template<class PolyMeshT>
-typename PolyMeshT::FaceHandle MeshExtractorT<TMeshT>::add_face(PolyMeshT &qmesh, std::vector<MeshExtractorT<TMeshT>::LocalEdgeInfo*> &leis) {
+typename PolyMeshT::FaceHandle MeshExtractorT<TMeshT>::add_face(PolyMeshT &qmesh, std::vector<typename MeshExtractorT<TMeshT>::LocalEdgeInfo*> &leis) {
     typedef typename std::vector<LocalEdgeInfo*> LEI_VEC;
 
     assert(!leis.empty());

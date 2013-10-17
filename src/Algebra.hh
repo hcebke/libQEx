@@ -34,6 +34,8 @@
 #include "Vector.hh"
 #include "ExactPredicates.h"
 
+#include <stdint.h>
+
 /// QEx namespace.
 namespace QEx {
 
@@ -92,11 +94,6 @@ class Vector_2 : private Vec2d {
 
         /// Conversion to 1x2 matrix.
         Matrix<1, 2> transpose() const;
-
-        /// Dot product. Deprecated. Use dot() instead.
-        double operator* (const Vector_2 &rhs) const __attribute__((deprecated)) {
-            return dot(rhs);
-        }
 
         /// Dot product.
         double dot(const Vector_2 &rhs) const {
@@ -362,7 +359,7 @@ class Triangle_2 {
              * Invalid indices are set to binary 11 which translates
              * to ::BND_INVALID.
              */
-            static const u_int32_t lookup_table = 0xfff5d182;
+            static const uint32_t lookup_table = 0xfff5d182;
 
             const int ori_a = static_cast<int>(orient2d(b, c, pt));
             const int ori_b = static_cast<int>(orient2d(c, a, pt));

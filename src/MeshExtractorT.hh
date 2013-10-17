@@ -178,7 +178,7 @@ class MeshExtractorT {
                 // default constructor
                 LocalEdgeInfo(const FH _fh_from, const Point_2 _uv_from, const Point_2 _uv_to) :
                         fh_from(_fh_from), uv_from(_uv_from), uv_intended_to(_uv_to),
-                        uv_to(NAN, NAN), connected_to_idx(LECI_No_Connection), orientation_idx(-1),
+						uv_to(std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()), connected_to_idx(LECI_No_Connection), orientation_idx(-1),
                         face_constructed(false), accumulated_tf(TF::IDENTITY), halfedgeIndex(-1)
 #ifndef NDEBUG
                         , primary(false), id(nextId++)
@@ -186,7 +186,7 @@ class MeshExtractorT {
                 {}
 
                 LocalEdgeInfo() :
-                        uv_from(NAN, NAN), uv_intended_to(NAN, NAN), uv_to(NAN, NAN),
+                        uv_from(std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()), uv_intended_to(std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()), uv_to(std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()),
                         connected_to_idx(LECI_No_Connection), orientation_idx(-1),
                         face_constructed(false), accumulated_tf(TF::IDENTITY), halfedgeIndex(-1)
 #ifndef NDEBUG
