@@ -218,7 +218,7 @@ class MeshExtractorT {
                 }
 
                 static bool vecNan(const Point_2 &pt) {
-                    return isnan(pt[0]) && isnan(pt[1]);
+                    return pt[0] != pt[0] && pt[1] != pt[1];
                 }
 
                 inline bool operator==(const LocalEdgeInfo &rhs) const {
