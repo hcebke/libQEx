@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
             vertex = quadMesh.vertices + quadMesh.quads[face_i].indices[vertex_i];
             printf("%d (%f, %f, %f)",
                     quadMesh.quads[face_i].indices[vertex_i],
-                    vertex->x[0], vertex->x[1], vertex->x[3]);
+                    vertex->x[0], vertex->x[1], vertex->x[2]);
         }
         printf("\n");
     }
