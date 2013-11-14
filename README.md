@@ -62,6 +62,6 @@ paper. (You can use the bibtex snippet above.)
 
 [Bommes, D., Zimmer, H., and Kobbelt, L. 2009. Mixed-integer quadrangulation. In Proc. SIGGRAPH 2009.](http://dx.doi.org/10.1145/1576246.1531383)
 
-[Ebke, H.-C., Bommes, D., Campen, M., and Kobbelt, L. 2013. QEx: Robust Quad Mesh Extraction. In Proc. SIGGRAPH Asia 2013.](http://dx.doi.org/10.1145/2508363.2508372)
+[Ebke, H.-C., Bommes, D., Campen, M., and Kobbelt, L. 2013. QEx: Robust Quad Mesh Extraction. ACM Trans. Graph., 32(6):168:1–168:10, November 2013.](http://dx.doi.org/10.1145/2508363.2508372)
 
 [Kälberer, F., Nieser, M., and Polthier , K. 2007. Quadcover - surface parameterization using branched coverings. Computer Graphics Forum 26, 3, 375–384.](http://dx.doi.org/10.1111/j.1467-8659.2007.01060.x)
