@@ -1197,7 +1197,9 @@ void
 MeshExtractorT<TMeshT>::
 increment_opposite_connected_to_idx(typename std::vector<LocalEdgeInfo>::iterator first, typename std::vector<LocalEdgeInfo>::iterator last) {
     for (; first != last; ++first) {
-        gvertices_[first->connected_to_idx].local_edge(first->orientation_idx).orientation_idx += 1;
+        if (first->connected_to_idx >= LocalEdgeInfo::LECI_Connected_Thresh)
+            gvertices_[first->connected_to_idx]
+                       .local_edge(first->orientation_idx).orientation_idx += 1;
     }
 }
 
@@ -1206,7 +1208,8 @@ bool
 MeshExtractorT<TMeshT>::
 notConnected(GridVertex &gv1, GridVertex &gv2) {
     for (typename std::vector<LocalEdgeInfo>::const_iterator it = gv1.local_edges.begin(), it_end = gv1.local_edges.end(); it != it_end; ++it) {
-        if (&gvertices_[it->connected_to_idx] == &gv2) return false;
+        if (it->connected_to_idx >= LocalEdgeInfo::LECI_Connected_Thresh &&
+                &gvertices_[it->connected_to_idx] == &gv2) return false;
     }
     return true;
 }
@@ -1917,7 +1920,9 @@ find_local_connection(const Point_2& _uv_from, const Point_2& _uv_original_from,
                       const HEH _heh0, const HEH _heh1, const HEH _heh2, const BOUNDEDNESS& _bs,
                       TF &accumulated_tf, std::vector<double>& _uv_coords)
 {
-  assert(!_tri.is_degenerate());
+  if (_tri.is_degenerate())
+      return FindPathResult::Signal(LocalEdgeInfo::LECI_Traced_Into_Degeneracy);
+
   assert( _bs == BND_ON_BOUNDED_SIDE || _bs == BND_ON_BOUNDARY);
 
   // strictly inside triangle ?
