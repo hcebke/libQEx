@@ -172,8 +172,10 @@ class PropMgr {
  * @param out_quadMesh @see extractQuadMeshOM()
  * @param heLocalUvProp A property manager used to store the local UVs for later processing.
  */
-void extractPolyMesh(TriMesh_t in_triMesh, const_UVVector_t in_uvs, const_ValenceVector_t in_vertexValences,
-                     QuadMesh_t out_quadMesh, typename QEx::PropMgr<QuadMesh>::LocalUvsPropertyManager &heLocalUvProp);
+void extractPolyMesh(TriMesh_t in_triMesh, const_UVVector_t in_uvs,
+                     const_ValenceVector_t in_vertexValences,
+                     QuadMesh_t out_quadMesh,
+                     QEx::PropMgr<QuadMesh>::LocalUvsPropertyManager &heLocalUvProp);
 
 /**
  * Performs the "Vertex Merging" and "Q-Edge Recovery" steps described in the paper.
@@ -183,7 +185,8 @@ void extractPolyMesh(TriMesh_t in_triMesh, const_UVVector_t in_uvs, const_Valenc
  * @param inout_polyMesh The poly mesh which will be transformed into a quad mesh.
  * @param heLocalUvProp The local UVs used to perform the merging.
  */
-void mergePolyToQuad(QuadMesh_t inout_polyMesh, typename QEx::PropMgr<QuadMesh>::LocalUvsPropertyManager &heLocalUvProp);
+void mergePolyToQuad(QuadMesh_t inout_polyMesh,
+                     QEx::PropMgr<QuadMesh>::LocalUvsPropertyManager &heLocalUvProp);
 
 /**
  * @brief (Semi-)Generic version of extractQuadMeshOM(). Usable with different but identical traits.

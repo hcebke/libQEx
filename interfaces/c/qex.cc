@@ -30,7 +30,7 @@
 
 namespace QEx {
 void extractPolyMesh(TriMesh_t in_triMesh, const_UVVector_t in_uvs, const_ValenceVector_t in_vertexValences,
-                     QuadMesh_t out_quadMesh, typename QEx::PropMgr<QuadMesh>::LocalUvsPropertyManager &heLocalUvProp) {
+                     QuadMesh_t out_quadMesh, QEx::PropMgr<QuadMesh>::LocalUvsPropertyManager &heLocalUvProp) {
     std::vector<double> uvs; uvs.reserve(in_uvs->size() * 2);
     for (std::vector<OpenMesh::Vec2d>::const_iterator it = in_uvs->begin(), it_end = in_uvs->end();
             it_end != it; ++it) {
@@ -47,7 +47,7 @@ void extractPolyMesh(TriMesh_t in_triMesh, const_UVVector_t in_uvs, const_Valenc
     qme.extract<QuadMesh>(uvs, heLocalUvProp, *out_quadMesh, in_vertexValences);
 }
 
-void mergePolyToQuad(QuadMesh_t inout_polyMesh, typename QEx::PropMgr<QuadMesh>::LocalUvsPropertyManager &heLocalUvProp) {
+void mergePolyToQuad(QuadMesh_t inout_polyMesh, QEx::PropMgr<QuadMesh>::LocalUvsPropertyManager &heLocalUvProp) {
     QEx::QuadExtractorPostprocT<QuadMesh> qexPp(*inout_polyMesh, heLocalUvProp);
     qexPp.ngons_to_quads();
 
@@ -66,7 +66,7 @@ namespace QEx {
 void extractQuadMeshOM(TriMesh_t in_triMesh, const_UVVector_t in_uvs, const_ValenceVector_t in_vertexValences, QuadMesh_t out_quadMesh) {
 
     // Create temporary local UVs property.
-    typename QEx::PropMgr<QuadMesh>::LocalUvsPropertyManager heLocalUvProp(
+    QEx::PropMgr<QuadMesh>::LocalUvsPropertyManager heLocalUvProp(
             *out_quadMesh, QEx::QExGlobals::LOCAL_UVS_HANDLE_NAME());
 
     extractPolyMesh(in_triMesh, in_uvs, in_vertexValences, out_quadMesh, heLocalUvProp);
