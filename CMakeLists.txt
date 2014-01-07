@@ -64,11 +64,11 @@ target_link_libraries (QEx
 # forcing the generation of SSE code ensures that the
 # exact predicates produce correct results.
 #
-set (QEX_COMPILE_FLAGS "-Wall -Wextra -pedantic")
+set (QEX_COMPILE_FLAGS "-Wall")
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     set (QEX_COMPILE_FLAGS "${QEX_COMPILE_FLAGS} -msse -mfpmath=sse")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-    set (QEX_COMPILE_FLAGS "${QEX_COMPILE_FLAGS} -msse -mfpmath=sse")
+    set (QEX_COMPILE_FLAGS "${QEX_COMPILE_FLAGS} -msse -mfpmath=sse -pedantic -Wextra")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
     message (WARNING
         "You are using an Intel compiler which might generate x87 FPU code "

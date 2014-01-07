@@ -24,6 +24,8 @@
 
 #include <map>
 #include <stack>
+#include <functional>
+#include <stdlib.h>
 
 namespace QEx {
 
