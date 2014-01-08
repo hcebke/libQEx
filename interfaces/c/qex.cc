@@ -31,6 +31,10 @@
 namespace QEx {
 void extractPolyMesh(TriMesh_t in_triMesh, const_UVVector_t in_uvs, const_ValenceVector_t in_vertexValences,
                      QuadMesh_t out_quadMesh, QEx::PropMgr<QuadMesh>::LocalUvsPropertyManager &heLocalUvProp) {
+
+    /*
+     * Convert UV representation.
+     */
     std::vector<double> uvs; uvs.reserve(in_uvs->size() * 2);
     for (std::vector<OpenMesh::Vec2d>::const_iterator it = in_uvs->begin(), it_end = in_uvs->end();
             it_end != it; ++it) {
