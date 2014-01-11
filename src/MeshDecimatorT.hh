@@ -50,6 +50,32 @@ class MeshDecimator {
                       uvs.begin() + he_to.idx() * 2);
         }
 
+        bool one_ring_intersection(
+                typename MeshT::VertexHandle v0,
+                typename MeshT::VertexHandle v1,
+                typename MeshT::VertexHandle vl,
+                typename MeshT::VertexHandle vr) {
+
+            for (typename MeshT::VVIter vv_it = mesh.vv_begin(v0),
+                    vv_end = mesh.vv_end(v0); vv_it != vv_end; ++vv_it) {
+                mesh.status(*vv_it).set_tagged(false);
+            }
+
+            for (typename MeshT::VVIter vv_it = mesh.vv_begin(v1),
+                    vv_end = mesh.vv_end(v1); vv_it != vv_end; ++vv_it) {
+                mesh.status(*vv_it).set_tagged(true);
+            }
+
+            for (typename MeshT::VVIter vv_it = mesh.vv_begin(v0),
+                    vv_end = mesh.vv_end(v0); vv_it != vv_end; ++vv_it) {
+                if (mesh.status(*vv_it).tagged() &&
+                        *vv_it != vl && *vv_it != vr)
+                    return true;
+            }
+
+            return false;
+        }
+
         size_t decimate() {
             mesh.request_vertex_status();
             mesh.request_halfedge_status();
@@ -76,48 +102,71 @@ class MeshDecimator {
                     uv1p(uvs[2 * idx1p], uvs[2 * idx1p + 1]);
 
                 if (uv0 == uv0p || uv1 == uv1p) {
-                    ++dec_counter;
-
-                    if (!external_valences.empty()) {
-                        const int
-                            vidx0 = mesh.to_vertex_handle(he0).idx(),
-                            vidx1 = mesh.from_vertex_handle(he0).idx();
-                        const int idx_to = 4 - static_cast<int>(
-                                external_valences[vidx0]);
-                        const int idx_from = 4 - static_cast<int>(
-                                external_valences[vidx1]);
-                        external_valences[vidx0] = 4 + idx_from + idx_to;
-                    }
-
                     const typename MeshT::HalfedgeHandle
                         he0n = mesh.next_halfedge_handle(he0),
-                        he1n = mesh.next_halfedge_handle(he1),
-                        he0n_opp = mesh.opposite_halfedge_handle(he0n),
-                        he1n_opp = mesh.opposite_halfedge_handle(he1n),
-                        he0p_opp = mesh.opposite_halfedge_handle(he0p),
-                        he1p_opp = mesh.opposite_halfedge_handle(he1p);
+                        he1n = mesh.next_halfedge_handle(he1);
 
-                    transfer_uvs(he0n_opp, he0p);
-                    transfer_uvs(he0p_opp, he0n);
-                    transfer_uvs(he1n_opp, he1p);
-                    transfer_uvs(he1p_opp, he1n);
+                    if (one_ring_intersection(
+                            mesh.to_vertex_handle(he0),
+                            mesh.to_vertex_handle(he1),
+                            mesh.to_vertex_handle(he0n),
+                            mesh.to_vertex_handle(he1n))) {
+#ifndef NDEBUG
+                        std::cout << "\x1b[47mDecimation: Got one ring "
+                                "intersection case.\x1b[0m" << std::endl;
+#endif
+                    } else if (!mesh.is_collapse_ok(he0)) {
+                        std::cout << "\x1b[41mSkipping non-ok collapse.\x1b[0m" << std::endl;
+                    } else {
+                        ++dec_counter;
+
+                        /*
+                         * Fix valences.
+                         */
+                        if (!external_valences.empty()) {
+                            const int
+                                vidx0 = mesh.to_vertex_handle(he0).idx(),
+                                vidx1 = mesh.from_vertex_handle(he0).idx();
+                            const int idx_to = 4 - static_cast<int>(
+                                    external_valences[vidx0]);
+                            const int idx_from = 4 - static_cast<int>(
+                                    external_valences[vidx1]);
+                            external_valences[vidx0] = 4 + idx_from + idx_to;
+                        }
+
+                        /*
+                         * Fix UVs
+                         */
+                        const typename MeshT::HalfedgeHandle
+                            he0n_opp = mesh.opposite_halfedge_handle(he0n),
+                            he1n_opp = mesh.opposite_halfedge_handle(he1n),
+                            he0p_opp = mesh.opposite_halfedge_handle(he0p),
+                            he1p_opp = mesh.opposite_halfedge_handle(he1p);
+
+                        transfer_uvs(he0n_opp, he0p);
+                        transfer_uvs(he0p_opp, he0n);
+                        transfer_uvs(he1n_opp, he1p);
+                        transfer_uvs(he1p_opp, he1n);
 
 #ifndef NDEBUG
-                    if (!mesh.is_collapse_ok(he0)) {
-                        std::cout << "\x1b[41mNon-ok collapse.\x1b[0m" << std::endl;
-                    }
+                        if ((uv0-uv0p).sqrnorm() > 0 ||
+                                (uv1-uv1p).sqrnorm() > 0) {
+                            std::cout << "\x1b[43mCollapsing inconsistent edge. "
+                                    "Length of he0 = "
+                                    << (uv0-uv0p).sqrnorm()
+                                    << ", length of he1 = "
+                                    << (uv1-uv1p).sqrnorm()
+                                    << std::endl
+                                    << "If this happens prior to truncation "
+                                       "it's ok. If it happens afterwards, "
+                                       "this is a bug."
+                                    << "\x1b[0m" << std::endl;
+                        }
 
-                    if ((uv0-uv0p).sqrnorm() > 0 ||
-                            (uv1-uv1p).sqrnorm() > 0) {
-                        std::cout << "\x1b[43mCollapsing inconsistend edge. "
-                                "Length of he0 = "
-                                << (uv0-uv0p).sqrnorm()
-                                << ", length of he1 = "
-                                << (uv1-uv1p).sqrnorm()
-                                << "\x1b[0m" << std::endl;
-                    }
 #endif
-                    mesh.collapse(he0);
+
+                        mesh.collapse(he0);
+                    }
                 }
             }
 #ifndef NDEBUG
