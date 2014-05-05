@@ -116,6 +116,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#if MSVC
+#include <float.h>
+#pragma fenv_access (on)
+#endif
 
 
 /* On some machines, the exact arithmetic routines might be defeated by the  */
@@ -511,6 +515,19 @@ void exactinit()
   REAL half;
   REAL check, lastcheck;
   int every_other;
+
+#if MSVC
+  /*
+   * In Visual Studio make sure that no internal extended precision is used.
+   * This isn't necessary for gcc as long as you use the supplied CMakeLists.txt
+   * which sets the appropriate flags.
+   */
+#ifdef SINGLE
+_control87(_PC_24, MCW_PC);     /* set FPU control word for single precision */
+#else /* not SINGLE */
+_control87(_PC_53, MCW_PC);     /* set FPU control word for double precision */
+#endif /* not SINGLE */
+#endif
 
   every_other = 1;
   half = 0.5;
