@@ -34,7 +34,12 @@
 #include "Vector.hh"
 #include "ExactPredicates.h"
 
+#ifdef MSVC
+typedef __int32 int32_t;
+typedef unsigned __int32 uint32_t;
+#else
 #include <stdint.h>
+#endif
 
 /// QEx namespace.
 namespace QEx {
