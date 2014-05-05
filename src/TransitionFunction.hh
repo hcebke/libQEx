@@ -166,8 +166,8 @@ class TransitionFunctionT {
             // compute translational part
             Complex t = r0 - std::pow(Complex(0, 1), r) * l0;
             // store translational part
-            tu = t.real();
-            tv = t.imag();
+            tu = ROUND_TF(t.real());
+            tv = ROUND_TF(t.imag());
         }
 
         template<typename STREAM>

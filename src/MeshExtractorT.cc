@@ -27,6 +27,7 @@
 //== INCLUDES =================================================================
 
 #include "MeshExtractorT.hh"
+#include "MeshDecimatorT.hh"
 
 #include <math.h>
 #include <cmath>
@@ -69,38 +70,103 @@ class LEIPointerEquality {
 };
 }
 
+namespace {
+template<class TMeshT>
+class OriginalEmbedding {
+    public:
+        OriginalEmbedding(TMeshT &mesh) : mesh(mesh) {}
+
+        typename TMeshT::Point operator() (typename TMeshT::HalfedgeHandle heh) {
+            return mesh.point(mesh.to_vertex_handle(heh));
+        }
+        TMeshT &mesh;
+};
+
+template<class TMeshT>
+class HeVectorEmbedding {
+    public:
+        HeVectorEmbedding(std::vector<typename TMeshT::Point> &embedding) :
+            embedding(embedding) {}
+
+        typename TMeshT::Point operator() (typename TMeshT::HalfedgeHandle heh) {
+            return embedding[heh.idx()];
+        }
+        std::vector<typename TMeshT::Point> &embedding;
+};
+}
+
 template<class TMeshT>
 template<class PolyMeshT>
 void MeshExtractorT<TMeshT>::extract(std::vector<double>& _uv_coords,
         typename PropMgr<PolyMeshT>::LocalUvsPropertyManager &heLocalUvProp,
         PolyMeshT& _quad_mesh, const std::vector<unsigned int> * const _external_valences) {
 
-    //perturbate_degenerate_faces(_uv_coords);
+
+#ifndef NDEBUG
+    std::cout << "\x1b[1;32m"
+            << (_external_valences ? "Using" : "Not using")
+            << " externally supplied vertex valences.\x1b[0m" << std::endl;
+#endif
 
     // --------------------------------------------------------
-    // 1. extract transition functions
+    // 1. collapse degenerate edges prior to truncation
     // --------------------------------------------------------
-    extract_transition_functions(_uv_coords);
+    std::vector<unsigned int> external_valences;
+    if (_external_valences)
+        external_valences = *_external_valences;
+    std::vector<double> uv_coords = _uv_coords;
+
+    std::vector<typename TMeshT::Point> he_points;
+    he_points.reserve(tri_mesh_.n_halfedges());
+    for (typename TMeshT::HalfedgeIter he_it = tri_mesh_.halfedges_begin(),
+            he_end = tri_mesh_.halfedges_end(); he_it != he_end; ++he_it) {
+        he_points.push_back(
+                tri_mesh_.point(tri_mesh_.to_vertex_handle(*he_it)));
+    }
+
+    MeshDecimator<TMeshT> decimator(tri_mesh_, uv_coords,
+                                    external_valences);
+    bool decimated = decimator.decimate();
 
     // --------------------------------------------------------
-    // 2. preprocess uv_coords in order to represent it exact
+    // 2. extract transition functions
     // --------------------------------------------------------
-    consistent_truncation(_uv_coords);
+    extract_transition_functions(uv_coords);
 
     // --------------------------------------------------------
-    // 3. generate quadmesh-vertices (and local edge information)
+    // 3. preprocess uv_coords in order to represent it exact
     // --------------------------------------------------------
-    generate_vertices(_uv_coords, _external_valences);
+    consistent_truncation(uv_coords);
 
     // --------------------------------------------------------
-    // 4. generate quadmesh-edges
+    // 4. collapse degenerate edges again after truncation
     // --------------------------------------------------------
-    generate_connections(_uv_coords);
+    decimated |= decimator.decimate();
+
+    // --------------------------------------------------------
+    // 5. generate quadmesh-vertices (and local edge information)
+    // --------------------------------------------------------
+    if (decimated) {
+        generate_vertices(
+                uv_coords,
+                _external_valences ? &external_valences : 0,
+                HeVectorEmbedding<TMeshT>(he_points));
+    } else {
+        generate_vertices(
+                uv_coords,
+                _external_valences ? &external_valences : 0,
+                OriginalEmbedding<TMeshT>(tri_mesh_));
+    }
+
+    // --------------------------------------------------------
+    // 6. generate quadmesh-edges
+    // --------------------------------------------------------
+    generate_connections(uv_coords);
 
     try_connect_incomplete_gvertices();
 
     // --------------------------------------------------------
-    // 5. traverse faces and store result in _quad_mesh
+    // 7. traverse faces and store result in _quad_mesh
     // --------------------------------------------------------
     generate_faces_and_store_quadmesh(_quad_mesh, heLocalUvProp);
 
@@ -109,7 +175,7 @@ void MeshExtractorT<TMeshT>::extract(std::vector<double>& _uv_coords,
 
 /// Constructor
 template<class TMeshT>
-MeshExtractorT<TMeshT>::MeshExtractorT(TMesh& _tri_mesh) :
+MeshExtractorT<TMeshT>::MeshExtractorT(const TMesh& _tri_mesh) :
         tri_mesh_(_tri_mesh), du_(1, 0), dv_(0, 1) {
     // CCW cartesian orientations
     cartesian_orientations_.push_back(du_);
@@ -129,7 +195,7 @@ void
 MeshExtractorT<TMeshT>::
 perturbate_degenerate_faces(std::vector<double>& _uv_coords) {
     static const double epsilon = 1.0/1048576.0; // 2^-20
-    for (FIter f_it = tri_mesh_.faces_begin(), f_end = tri_mesh_.faces_end(); f_it != f_end; ++f_it) {
+    for (FIter f_it = tri_mesh_.faces_sbegin(), f_end = tri_mesh_.faces_end(); f_it != f_end; ++f_it) {
         const HEH heh[3] = {
                             tri_mesh_.halfedge_handle(*f_it),
                             tri_mesh_.next_halfedge_handle(heh[0]),
@@ -193,11 +259,11 @@ void MeshExtractorT<TMeshT>::extract_transition_functions(const std::vector<doub
     int n_valid(0);
 #endif
 
-    tf_.reserve(tri_mesh_.n_edges());
+    tf_.resize(tri_mesh_.n_edges());
 
-    for (EIter e_it = tri_mesh_.edges_begin(), e_end = tri_mesh_.edges_end(); e_it != e_end; ++e_it)
+    for (EIter e_it = tri_mesh_.edges_sbegin(), e_end = tri_mesh_.edges_end(); e_it != e_end; ++e_it)
         if (tri_mesh_.is_boundary(*e_it)) {
-            tf_.push_back(TF(0, 0, 0));
+            tf_[e_it->idx()] = TF(0, 0, 0);
 #if !defined(NDEBUG) && DEBUG_VERBOSITY >= 2
             n_valid += 2;
 #endif
@@ -218,7 +284,7 @@ void MeshExtractorT<TMeshT>::extract_transition_functions(const std::vector<doub
             // compute translational part
             const Complex t = r0 - std::pow(Complex(0, 1), r) * l0;
             // push back new transition function
-            tf_.push_back(TF(r, ROUND_QME(t.real()), ROUND_QME(t.imag())));
+            tf_[e_it->idx()] = TF(r, ROUND_QME(t.real()), ROUND_QME(t.imag()));
 
 #if !defined(NDEBUG) && DEBUG_VERBOSITY >= 2
             // check result
@@ -268,7 +334,7 @@ void MeshExtractorT<TMeshT>::consistent_truncation(
         std::cerr << "test exactness of transition functions before preprocessing..." << std::endl;
         int n_inexact(0);
         double max_abs_diff(0);
-        for (EIter e_it = tri_mesh_.edges_begin(), e_end = tri_mesh_.edges_end(); e_it != e_end; ++e_it) {
+        for (EIter e_it = tri_mesh_.edges_sbegin(), e_end = tri_mesh_.edges_end(); e_it != e_end; ++e_it) {
             if (!tri_mesh_.is_boundary(*e_it)) {
                 HEH heh0 = tri_mesh_.halfedge_handle(e_it, 0);
                 HEH heh1 = tri_mesh_.halfedge_handle(e_it, 1);
@@ -299,7 +365,7 @@ void MeshExtractorT<TMeshT>::consistent_truncation(
 
     if (tri_mesh_.has_edge_status()) {
         // correct integer values at boundaries
-        for (EIter e_it = tri_mesh_.edges_begin(), e_end = tri_mesh_.edges_end(); e_it != e_end; ++e_it) {
+        for (EIter e_it = tri_mesh_.edges_sbegin(), e_end = tri_mesh_.edges_end(); e_it != e_end; ++e_it) {
             if (tri_mesh_.is_boundary(*e_it)) {
                 if (tri_mesh_.status(*e_it).selected() || tri_mesh_.status(*e_it).feature()) {
                     const HEH heh0 = tri_mesh_.halfedge_handle(*e_it, 0);
@@ -318,7 +384,7 @@ void MeshExtractorT<TMeshT>::consistent_truncation(
     }
 
     // for all vertices
-    for (VIter v_it = tri_mesh_.vertices_begin(), v_end = tri_mesh_.vertices_end(); v_it != v_end; ++v_it) {
+    for (VIter v_it = tri_mesh_.vertices_sbegin(), v_end = tri_mesh_.vertices_end(); v_it != v_end; ++v_it) {
         // for all incoming halfedges
         double max_u_abs(0), max_trans_abs(0);
         for (CVIHIter vih_it = tri_mesh_.cvih_iter(*v_it); vih_it.is_valid(); ++vih_it) {
@@ -415,7 +481,7 @@ void MeshExtractorT<TMeshT>::consistent_truncation(
 
         // for all edges
         std::cerr << "test exactness of transition functions..." << std::endl;
-        for (EIter e_it = tri_mesh_.edges_begin(), e_end = tri_mesh_.edges_end(); e_it != e_end; ++e_it)
+        for (EIter e_it = tri_mesh_.edges_sbegin(), e_end = tri_mesh_.edges_end(); e_it != e_end; ++e_it)
             if (!tri_mesh_.is_boundary(*e_it)) {
                 HEH heh0 = tri_mesh_.halfedge_handle(*e_it, 0);
                 HEH heh1 = tri_mesh_.halfedge_handle(*e_it, 1);
@@ -452,7 +518,7 @@ std::string MeshExtractorT<TMeshT>::getParametrizationStats(std::vector<double>&
     int faces_positive = 0;
     int faces_negative = 0;
 
-    for (FIter f_it = tri_mesh_.faces_begin(), f_end = tri_mesh_.faces_end(); f_it != f_end; ++f_it) {
+    for (FIter f_it = tri_mesh_.faces_sbegin(), f_end = tri_mesh_.faces_end(); f_it != f_end; ++f_it) {
         const FH fh = *f_it;
 
         // get three halfedge_handles of triangle
@@ -499,7 +565,11 @@ std::string MeshExtractorT<TMeshT>::getParametrizationStats(std::vector<double>&
 }
 
 template<class TMeshT>
-void MeshExtractorT<TMeshT>::generate_vertices(std::vector<double>& _uv_coords, const std::vector<unsigned int> * const _external_valences) {
+template<typename EMBEDDING>
+void MeshExtractorT<TMeshT>::generate_vertices(
+        std::vector<double>& _uv_coords,
+        const std::vector<unsigned int> * const _external_valences,
+        EMBEDDING embedding) {
 
     tri_mesh_.request_face_colors();
 
@@ -509,7 +579,7 @@ void MeshExtractorT<TMeshT>::generate_vertices(std::vector<double>& _uv_coords, 
     vertex_to_halfedge_.resize(tri_mesh_.n_vertices());
     edge_to_halfedge_.resize(tri_mesh_.n_edges());
 
-    for (VIter v_it = tri_mesh_.vertices_begin(), v_end = tri_mesh_.vertices_end(); v_it != v_end; ++v_it) {
+    for (VIter v_it = tri_mesh_.vertices_sbegin(), v_end = tri_mesh_.vertices_end(); v_it != v_end; ++v_it) {
         const VIHIter vih_iter = tri_mesh_.vih_iter(*v_it);
         if (vih_iter.is_valid())
             vertex_to_halfedge_[v_it->idx()] = *vih_iter;
@@ -517,7 +587,7 @@ void MeshExtractorT<TMeshT>::generate_vertices(std::vector<double>& _uv_coords, 
             vertex_to_halfedge_[v_it->idx()] = HEH(-1);
     }
 
-    for (EIter e_it = tri_mesh_.edges_begin(), e_end = tri_mesh_.edges_end(); e_it != e_end; ++e_it) {
+    for (EIter e_it = tri_mesh_.edges_sbegin(), e_end = tri_mesh_.edges_end(); e_it != e_end; ++e_it) {
         const EH eh = *e_it;
         const HEH heh0 = tri_mesh_.halfedge_handle(eh, 0);
         const HEH heh1 = tri_mesh_.halfedge_handle(eh, 1);
@@ -540,13 +610,12 @@ void MeshExtractorT<TMeshT>::generate_vertices(std::vector<double>& _uv_coords, 
     // Skip the first 15 reallocations.
     gvertices_.reserve(32768);
     // clear and resize container
-    triangle_valid_.resize(tri_mesh_.n_faces());
     face_gvertices_.clear();
     face_gvertices_.resize(tri_mesh_.n_faces());
     int n_face_gvertices(0);
 
     // extract vertices within faces
-    for (FIter f_it = tri_mesh_.faces_begin(), f_end = tri_mesh_.faces_end(); f_it != f_end; ++f_it) {
+    for (FIter f_it = tri_mesh_.faces_sbegin(), f_end = tri_mesh_.faces_end(); f_it != f_end; ++f_it) {
         const FH fh = *f_it;
         // get three halfedge_handles of triangle
         const HEH heh0 = tri_mesh_.halfedge_handle(fh);
@@ -565,12 +634,11 @@ void MeshExtractorT<TMeshT>::generate_vertices(std::vector<double>& _uv_coords, 
         // non-degenerate?
         if (tri_orientation != ORI_ZERO) {
             tri_mesh_.set_color(fh, typename TMeshT::Color(1.0, 1.0, 1.0, 1.0));
-            triangle_valid_[fh.idx()] = true;
 
             // get mapping between 2d and 3d
-            const Point pp0 = tri_mesh_.point(tri_mesh_.to_vertex_handle(heh0));
-            const Point pp1 = tri_mesh_.point(tri_mesh_.to_vertex_handle(heh1));
-            const Point pp2 = tri_mesh_.point(tri_mesh_.to_vertex_handle(heh2));
+            const Point pp0 = embedding(heh0);
+            const Point pp1 = embedding(heh1);
+            const Point pp2 = embedding(heh2);
             const Matrix_3 M = get_mapping(tri, pp0, pp1, pp2);
 
             const Bbox_2 bb = tri.bbox();
@@ -602,7 +670,6 @@ void MeshExtractorT<TMeshT>::generate_vertices(std::vector<double>& _uv_coords, 
                 }
             }
         } else {
-            triangle_valid_[fh.idx()] = false;
             tri_mesh_.set_color(fh, typename TMeshT::Color(1.0, 0.0, 0.0, 1.0));
         }
     }
@@ -617,7 +684,7 @@ void MeshExtractorT<TMeshT>::generate_vertices(std::vector<double>& _uv_coords, 
     int n_edge_gvertices(0);
 
     // extract vertices within edges
-    for (EIter e_it = tri_mesh_.edges_begin(), e_end = tri_mesh_.edges_end(); e_it != e_end; ++e_it) {
+    for (EIter e_it = tri_mesh_.edges_sbegin(), e_end = tri_mesh_.edges_end(); e_it != e_end; ++e_it) {
         const EH eh = *e_it;
         // get corresponding face
         if (!(edge_to_halfedge_[eh.idx()].is_valid())) {
@@ -642,8 +709,8 @@ void MeshExtractorT<TMeshT>::generate_vertices(std::vector<double>& _uv_coords, 
             edge_valid_[eh.idx()] = true;
 
             // get mapping between 2d and 3d
-            const Point pp0 = tri_mesh_.point(tri_mesh_.to_vertex_handle(heh0));
-            const Point pp1 = tri_mesh_.point(tri_mesh_.to_vertex_handle(heh1));
+            const Point pp0 = embedding(heh0);
+            const Point pp1 = embedding(heh1);
 
 #if !defined(NDEBUG) && DEBUG_VERBOSITY >= 2
             std::cout << "Checking edge (" << pp0 << ", " << pp1 << ")" << std::endl;
@@ -750,7 +817,7 @@ void MeshExtractorT<TMeshT>::generate_vertices(std::vector<double>& _uv_coords, 
 #endif
 
     // extract vertices within faces
-    for (VIter v_it = tri_mesh_.vertices_begin(), v_end = tri_mesh_.vertices_end(); v_it != v_end; ++v_it) {
+    for (VIter v_it = tri_mesh_.vertices_sbegin(), v_end = tri_mesh_.vertices_end(); v_it != v_end; ++v_it) {
         const VH vh = *v_it;
         // get corresponding halfedge
         const HEH heh = vertex_to_halfedge_[vh.idx()];
@@ -771,7 +838,8 @@ void MeshExtractorT<TMeshT>::generate_vertices(std::vector<double>& _uv_coords, 
             vertex_gvertices_[vh.idx()].push_back(gvertices_.size());
             // store new GridVertex
             gvertices_.push_back(
-                    GridVertex(GridVertex::OnVertex, heh, p, tri_mesh_.point(vh), false));
+                    GridVertex(GridVertex::OnVertex, heh, p,
+                               embedding(tri_mesh_.opposite_halfedge_handle(tri_mesh_.halfedge_handle(vh))), false));
             // construct local edge information
             construct_local_edge_information_vertex(gvertices_.back(), _uv_coords, _external_valences);
 
@@ -1143,7 +1211,8 @@ construct_local_edge_information_vertex(GridVertex& _gv, const std::vector<doubl
 
     const double ninetyJump = pos_angleSum / M_PI_2;
 #ifndef NDEBUG
-    if (!_gv.is_boundary && fabs(ninetyJump - round(ninetyJump)) >= 1e-6) {
+    if (!_external_valences && !_gv.is_boundary &&
+            fabs(ninetyJump - round(ninetyJump)) >= 1e-6) {
         std::cerr << "\x1b[41mAssertion fabs(periodJump - round(periodJump)) < 1e-6 failed." << std::endl
                 << "  This is more of a soft assertion since in the vicinity of degenerate" << std::endl
                 << "  or almost degenerate triangles the periodJump computed here can be" << std::endl
@@ -1163,7 +1232,7 @@ construct_local_edge_information_vertex(GridVertex& _gv, const std::vector<doubl
      * count on the number of expected LEIs we determine here.
      */
     // assert(_gv.is_boundary || fabs(ninetyJump - round(ninetyJump)) < 1e-6);
-	
+
     const int expected_lei_count =
             _external_valences ? (*_external_valences)[vh.idx()] : static_cast<unsigned int>(ROUND_QME(ninetyJump));
     _gv.missing_leis = expected_lei_count - static_cast<int>(_gv.local_edges.size());
@@ -1198,7 +1267,9 @@ void
 MeshExtractorT<TMeshT>::
 increment_opposite_connected_to_idx(typename std::vector<LocalEdgeInfo>::iterator first, typename std::vector<LocalEdgeInfo>::iterator last) {
     for (; first != last; ++first) {
-        gvertices_[first->connected_to_idx].local_edge(first->orientation_idx).orientation_idx += 1;
+        if (first->connected_to_idx >= LocalEdgeInfo::LECI_Connected_Thresh)
+            gvertices_[first->connected_to_idx]
+                       .local_edge(first->orientation_idx).orientation_idx += 1;
     }
 }
 
@@ -1207,7 +1278,8 @@ bool
 MeshExtractorT<TMeshT>::
 notConnected(GridVertex &gv1, GridVertex &gv2) {
     for (typename std::vector<LocalEdgeInfo>::const_iterator it = gv1.local_edges.begin(), it_end = gv1.local_edges.end(); it != it_end; ++it) {
-        if (&gvertices_[it->connected_to_idx] == &gv2) return false;
+        if (it->connected_to_idx >= LocalEdgeInfo::LECI_Connected_Thresh &&
+                &gvertices_[it->connected_to_idx] == &gv2) return false;
     }
     return true;
 }
@@ -1717,7 +1789,8 @@ find_path(const GridVertex& _gv, const LocalEdgeInfo& lei, std::vector<double>& 
 
 #ifndef NDEBUG
   std::ostringstream traceHistory;
-  traceHistory << "* Starting trace at " << uv_from << "." << std::endl;
+  traceHistory << "* Starting trace at " << uv_from << " at GV " << _gv << "." << std::endl
+          << "  Tracing into very first triangle " << uv0 << ", " << uv1 << ", " << uv2 << std::endl;
 #endif
 
   // walk to next face
@@ -1750,10 +1823,6 @@ find_path(const GridVertex& _gv, const LocalEdgeInfo& lei, std::vector<double>& 
     debug_ss << "fidx " << cur_fh.idx() << std::endl;
 #endif
 
-    // ran into invalid triangle?
-    if(!triangle_valid_[cur_fh.idx()])
-        return FindPathResult::Signal(LocalEdgeInfo::LECI_Traced_Into_Degeneracy);
-
     // get halfedges of triangle
     heh0 = cur_heh;
     heh1 = tri_mesh_.next_halfedge_handle(heh0);
@@ -1766,9 +1835,36 @@ find_path(const GridVertex& _gv, const LocalEdgeInfo& lei, std::vector<double>& 
 
     // get triangle
     tri = Triangle_2(uv0, uv1, uv2);
+    const ORIENTATION tri_ori = tri.orientation();
+
+#ifndef NDEBUG
+            traceHistory << "* Landed in new triangle "
+                << uv0 << ", " << uv1 << ", " << uv2
+                << " using edge " << Segment_2(uv0, uv2)
+                << std::endl;
+#endif
+
+    if (tri_ori == ORI_ZERO) {
+        if (uv0 != uv1 && uv1 != uv2 && uv2 != uv0) {
+            std::cerr
+                << "\x1b[41mLogic error: Traced into degenerate triangle (a"
+                   "cap). This shouldn't be possible.\x1b[0m"
+                << std::endl;
+            assert(false);
+            return FindPathResult::Signal(LocalEdgeInfo::LECI_Traced_Into_Degeneracy);
+        } else {
+            std::cerr << "\x1b[41mEdges degenerated to a point should have "
+                    << std::endl <<
+                    "been removed during pre processing. This doesn't seem to "
+                    << std::endl <<
+                    "be the case here. Let's see how this ends.\x1b[0m"
+                    << std::endl;
+            return FindPathResult::Signal(LocalEdgeInfo::LECI_Traced_Into_Degeneracy);
+        }
+    }
 
     {
-        const bool currentlyInverted = (tri.orientation() == ORI_NEGATIVE);
+        const bool currentlyInverted = (tri_ori == ORI_NEGATIVE);
         if (currentlyInverted != inverted) {
 #ifndef NDEBUG
             traceHistory << "* Inverting tracing direction. "
@@ -1822,16 +1918,27 @@ find_path(const GridVertex& _gv, const LocalEdgeInfo& lei, std::vector<double>& 
         const bool vis1 = path.has_on(uv1);
         const bool vis2 = path.has_on(uv2);
 
-        // do not allow path to be parallel to edge, since this configuration is not unique!!!
-        assert(!(vis0 && vis2));
-
-        if(orient2d(uv0, uv2, path[0]) == ORI_COLLINEAR)
-        {
-#if DEBUG
-          std::cerr << "ERROR: path parallel to edge is not allowed!!!" << std::endl;
-#endif
-          // return error
-          return FindPathResult::Error();
+        if (orient2d(uv0, uv2, path[0]) == ORI_COLLINEAR &&
+                orient2d(uv0, uv2, path[1]) == ORI_COLLINEAR) {
+            std::cerr << "Logic error: Path parallel to edge we entered the "
+                    "triangle over should be impossible by construction."
+                    << std::endl;
+            std::cerr << "Debug info:" << std::endl
+                    << "vis{0,1,2} = " << vis0 << ", " << vis1
+                        << ", " << vis2 << std::endl
+                    << "is1, is2 = " << is1 << ", " << is2 << std::endl
+                    << "uv{0,1,2} = " << uv0 << ", " << uv1
+                    << ", " << uv2 << "" << std::endl
+                    << "path = " << path[0] << " -> " << path[1] << std::endl
+                    << "orient2d(uv0, uv2, path[0]) = " << static_cast<int>(
+                            orient2d(uv0, uv2, path[0])) << std::endl
+                    << "orient2d(uv0, uv2, path[1]) = " << static_cast<int>(
+                            orient2d(uv0, uv2, path[1])) << std::endl
+                    << "tri_ori = " << tri_ori << std::endl
+                    ;
+            assert(false);
+            // return error
+            return FindPathResult::Error();
         }
 
         if( vis0 && vis1)
@@ -1839,9 +1946,9 @@ find_path(const GridVertex& _gv, const LocalEdgeInfo& lei, std::vector<double>& 
         else if( vis2 && vis1)
             heh_upd = heh1;
         else if(vis0)
-            heh_upd = heh2;
-        else if(vis2 || vis1)
             heh_upd = heh1;
+        else if(vis2 || vis1)
+            heh_upd = heh2;
         else {
             std::cerr << "Warning: case 2 lead to impossible situation..." << std::endl;
             #if DEBUG
@@ -1852,13 +1959,34 @@ find_path(const GridVertex& _gv, const LocalEdgeInfo& lei, std::vector<double>& 
       }
       else if( !is1 && !is2)
       {
-        std::cerr << "Warning: find_path didn't find the point where the path leaves a triangle in step " << steps << "." << std::endl;
+        std::cerr
+            << "\x1b[1;41m"
+            << "Warning: find_path didn't find the point where the path "
+               "leaves a triangle in step " << steps << "." << std::endl
+            << "*********** DEBUG OUTPUT START ***********\x1b[0m" << std::endl;
         std::cerr << "triangle-path intersection: " << int(path.intersects(tri)) << std::endl;
         std::cerr << "Segment 1: " << s1 << "," << std::endl
                 << "Segment 2: " << s2 << "," << std::endl
                 << "Path: " << path << std::endl
                 << "Here's Tikz output for you so you can debug it more easily. You're welcome." << std::endl
                 << s1.toTikz() << std::endl << s2.toTikz() << std::endl << path.toTikz() << std::endl;
+        const bool vis0 = path.has_on(uv0);
+        const bool vis1 = path.has_on(uv1);
+        const bool vis2 = path.has_on(uv2);
+        std::cerr << "Debug info:" << std::endl
+                << "vis{0,1,2} = " << vis0 << ", " << vis1
+                    << ", " << vis2 << std::endl
+                << "is1, is2 = " << is1 << ", " << is2 << std::endl
+                << "uv{0,1,2} = " << uv0 << ", " << uv1
+                << ", " << uv2 << "" << std::endl
+                << "path = " << path[0] << " -> " << path[1] << std::endl
+                << "orient2d(uv0, uv2, path[0]) = " << static_cast<int>(
+                        orient2d(uv0, uv2, path[0])) << std::endl
+                << "orient2d(uv0, uv2, path[1]) = " << static_cast<int>(
+                        orient2d(uv0, uv2, path[1])) << std::endl
+                << "tri_ori = " << tri_ori << std::endl
+                ;
+
 #ifndef NDEBUG
         std::cerr << "Trace history:" << std::endl << traceHistory.str() << std::endl;
 #endif
@@ -1866,6 +1994,9 @@ find_path(const GridVertex& _gv, const LocalEdgeInfo& lei, std::vector<double>& 
         std::cerr << debug_ss.str() << std::endl;
         #endif
 
+        std::cerr
+            << "\x1b[1;41m"
+            << "*********** DEBUG OUTPUT END ***********\x1b[0m" << std::endl;
         // return error
         return FindPathResult::Error();
       }
@@ -1918,7 +2049,9 @@ find_local_connection(const Point_2& _uv_from, const Point_2& _uv_original_from,
                       const HEH _heh0, const HEH _heh1, const HEH _heh2, const BOUNDEDNESS& _bs,
                       TF &accumulated_tf, std::vector<double>& _uv_coords)
 {
-  assert(!_tri.is_degenerate());
+  if (_tri.is_degenerate())
+      return FindPathResult::Signal(LocalEdgeInfo::LECI_Traced_Into_Degeneracy);
+
   assert( _bs == BND_ON_BOUNDED_SIDE || _bs == BND_ON_BOUNDARY);
 
   // strictly inside triangle ?
@@ -2631,7 +2764,7 @@ generate_faces_and_store_quadmesh(PolyMeshT& _quad_mesh,
   int n_desired_holes(0);
   int n_isolated_vertices_removed(0);
   std::set<typename PolyMeshT::VertexHandle> visited;
-  typename PolyMeshT::VertexIter v_it  = _quad_mesh.vertices_begin();
+  typename PolyMeshT::VertexIter v_it  = _quad_mesh.vertices_sbegin();
   typename PolyMeshT::VertexIter v_end = _quad_mesh.vertices_end();
   for(; v_it != v_end; ++v_it)
   {
@@ -2701,7 +2834,7 @@ generate_faces_and_store_quadmesh(PolyMeshT& _quad_mesh,
   // tag visualization for debugging -> deactivated per default
   if(0)
   {
-    v_it  = _quad_mesh.vertices_begin();
+    v_it  = _quad_mesh.vertices_sbegin();
     v_end = _quad_mesh.vertices_end();
     for(; v_it != v_end; ++v_it)
       if(_quad_mesh.status(*v_it).tagged())
@@ -2736,7 +2869,7 @@ transition(const VH& _vh) const
     // start with identity
     TF tf(0,0,0);
 
-    VIHIter vih_it = tri_mesh_.vih_iter(_vh);
+    CVIHIter vih_it = tri_mesh_.cvih_iter(_vh);
 
     // store first heh-transition which should be the last for chart belonging to *vih_it
     TF tf_first = transition(tri_mesh_.opposite_halfedge_handle(*vih_it));
@@ -2809,7 +2942,7 @@ void
 MeshExtractorT<TMeshT>::
 print_quad_mesh_metrics(const PolyMeshT& _quad_mesh) {
     std::map<unsigned int, int> valence_histogram;
-    for (typename PolyMeshT::FaceIter f_it = _quad_mesh.faces_begin(), f_end = _quad_mesh.faces_end(); f_it != f_end; ++f_it) {
+    for (typename PolyMeshT::FaceIter f_it = _quad_mesh.faces_sbegin(), f_end = _quad_mesh.faces_end(); f_it != f_end; ++f_it) {
         assert(f_it->is_valid());
         const unsigned int valence = _quad_mesh.valence(*f_it);
         valence_histogram[valence] += 1;

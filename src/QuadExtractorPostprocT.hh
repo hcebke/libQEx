@@ -88,14 +88,6 @@ class QuadExtractorPostprocT {
         void output_localuvs_of_selected_faces();
 
     private:
-        class NonManifoldEdge {
-            public:
-                bool is_same(const NonManifoldEdge &rhs) const {
-                    throw std::logic_error("Not implemented, yet.");
-                }
-        };
-
-    private:
         void generate_collapse_graph(Graph &out_collapseGraph);
         size_t create_consolidated_vertices_and_vertex_map(Graph &collapseGraph, std::vector<int> &out_vertex_map);
         bool compute_face_image(FH face, const std::vector<int> &vertex_map, FACE_UV &out_newFaceVertices);

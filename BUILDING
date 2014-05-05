@@ -1,7 +1,9 @@
 libQEx uses the cmake build system.
 
-libQEx depends on OpenMesh. If you don't have a copy of OpenMesh yet, get it
-at http://openmesh.org/.
+libQEx depends on OpenMesh. If you don't have a copy of OpenMesh yet, get it at
+http://openmesh.org/. libQEx depends on version 3 of OpenMesh. As of this
+writing you have to build OpenMesh from the svn trunk as version 3 is not yet
+available in a pre-packaged form.
 
 If you want to build the unit tests, you also need the googletest framework.
 You can get it at http://code.google.com/p/googletest/.

@@ -115,7 +115,7 @@ class MeshExtractorT {
          * @brief Constructor.
          * @param _tri_mesh The triangle mesh which to construct a quad mesh from.
          */
-        MeshExtractorT(TMesh& _tri_mesh);
+        MeshExtractorT(const TMesh& _tri_mesh);
 
         /// Destructor
         ~MeshExtractorT();
@@ -495,7 +495,10 @@ class MeshExtractorT {
 
         // generate GridVertices and their local edge information
         // vertex_to_face_ and edge_to_face_ are initialized for use in generate_edges
-        void generate_vertices(std::vector<double>& _uv_coords, const std::vector<unsigned int> * const _external_valences);
+        template<typename EMBEDDING>
+        void generate_vertices(std::vector<double>& _uv_coords,
+                               const std::vector<unsigned int> * const _external_valences,
+                               EMBEDDING embedding);
 
         // generate connections between GridVertices (connect local outgoing edges)
         void generate_connections(std::vector<double>& _uv_coords);
@@ -625,7 +628,7 @@ class MeshExtractorT {
 #endif
 
         // reference to triangle mesh
-        TMesh& tri_mesh_;
+        TMesh tri_mesh_;
 
         // transition functions per edge
         // convention: from face(first_halfedge) -> face(second_halfedge)
@@ -636,7 +639,6 @@ class MeshExtractorT {
         std::vector<HEH> edge_to_halfedge_;
 
         // cache whether or not a triangle/edge is valid in parameter space
-        std::vector<bool> triangle_valid_;
         std::vector<bool> edge_valid_;
 
         // store for each face/edge/vertex references to its grid-vertices

@@ -206,8 +206,8 @@ bool QuadExtractorPostprocT<MeshT>::simplify_face(const std::vector<std::pair<VH
     while (!bfs.empty()) {
         VEC_PVH2I currentFace = bfs.top(); bfs.pop();
 
-        int sequenceLength = static_cast<int>(currentFace.size());
-        const int idealLength = sequenceLength/2;
+        size_t sequenceLength = currentFace.size();
+        const int idealLength = static_cast<int>(sequenceLength)/2;
         typename VEC_PVH2I::iterator seq_begin = currentFace.begin(),
                 seq_end = currentFace.end();
 
@@ -216,14 +216,15 @@ bool QuadExtractorPostprocT<MeshT>::simplify_face(const std::vector<std::pair<VH
                 if (v1_it->first != v2_it->first) continue;
 
                 const int dist = std::distance(v1_it, v2_it);
-                if(abs(idealLength - dist) < abs(idealLength - sequenceLength)) {
+                assert(dist > 0);
+                if (abs(idealLength - dist) < abs(idealLength - sequenceLength)) {
                     sequenceLength = dist;
                     seq_begin = v1_it;
                     seq_end = v2_it;
                 }
 
-                if (abs(idealLength - (static_cast<int>(currentFace.size()) - dist)) < abs(idealLength - sequenceLength)) {
-                    sequenceLength = static_cast<int>(currentFace.size()) - dist;
+                if (abs(idealLength - (currentFace.size() - dist)) < abs(idealLength - sequenceLength)) {
+                    sequenceLength = currentFace.size() - dist;
                     seq_begin = v2_it;
                     seq_end = v1_it;
                 }

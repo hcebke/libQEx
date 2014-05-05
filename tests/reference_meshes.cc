@@ -85,11 +85,22 @@ TEST_P(Test_Reference_Mesh, basic_sanity) {
         vertexPos2idx_actual[actual.point(*ac_it)] = ac_it->idx();
     }
 
-    if (vertexPos2idx_expected.size() != vertexPos2idx_actual.size())
-        return ::testing::AssertionFailure() << "Expected and actual mesh have different number of vertices.";
-    if (vertexPos2idx_expected.size() != expected.n_vertices())
-        return ::testing::AssertionFailure() << "Vertices with identical positions detected. Vertices: "
-                << expected.n_vertices() << " Unique vertices: " << vertexPos2idx_expected.size();
+    ::testing::AssertionResult failure = ::testing::AssertionFailure();
+    bool is_failure = false;
+
+    if (vertexPos2idx_expected.size() != vertexPos2idx_actual.size()) {
+        is_failure = true;
+        failure
+            << "Expected and actual mesh have different number of vertices: "
+            << "Expected = " << vertexPos2idx_expected.size()
+            << ", actual = " << vertexPos2idx_actual.size() << "." << std::endl;
+    }
+    if (vertexPos2idx_expected.size() != expected.n_vertices()) {
+        is_failure = true;
+        failure << "Vertices with identical positions detected. Vertices: "
+                << expected.n_vertices() << " Unique vertices: "
+                << vertexPos2idx_expected.size() << std::endl;
+    }
 
     /*
      * Match vertices.
@@ -134,16 +145,20 @@ TEST_P(Test_Reference_Mesh, basic_sanity) {
             }
         }
 
-        if (mapped_in_actual.find(best_ac->second) != mapped_in_actual.end())
-            return ::testing::AssertionFailure() << "Ambiguous vertex positions.";
+        if (mapped_in_actual.find(best_ac->second) != mapped_in_actual.end()) {
+            is_failure = true;
+            failure << "Ambiguous vertex positions." << std::endl;
+        }
         mapped_in_actual.insert(best_ac->second);
         if ((ex_it->first - best_ac->first).sqrnorm() > 1e-9) {
-            return ::testing::AssertionFailure() << "Vertex position mismatch ("
+            is_failure = true;
+            failure << "Vertex position mismatch ("
                     << std::distance((std::map<QuadMesh::Point, size_t>::const_iterator)
                             vertexPos2idx_expected.begin(), ex_it) << "): "
                     << "expected #" << ex_it->second << ": " << ex_it->first
                     << ", actual #" << best_ac->second << ": " << best_ac->first
-                    << ", squared distance: " << (ex_it->first - best_ac->first).sqrnorm();
+                    << ", squared distance: " << (ex_it->first - best_ac->first).sqrnorm()
+                    << std::endl;
         }
 
         vidx_expected2actual[ex_it->second] = best_ac->second;
@@ -166,8 +181,11 @@ TEST_P(Test_Reference_Mesh, basic_sanity) {
                 break;
             }
         }
-        if (!found) return ::testing::AssertionFailure() << "Expected-edge (" << vh_from.idx() << ", " << vh_to.idx()
-                << ") |-> (" << ac_from.idx() << ", " << ac_to.idx() << ") not matched in actual mesh.";
+        if (!found) {
+            is_failure = true;
+            failure << "Expected-edge (" << vh_from.idx() << ", " << vh_to.idx()
+                    << ") |-> (" << ac_from.idx() << ", " << ac_to.idx() << ") not matched in actual mesh.";
+        }
 
     }
 
@@ -204,11 +222,16 @@ TEST_P(Test_Reference_Mesh, basic_sanity) {
                 break;
             }
         }
-        if (!found)
-            return ::testing::AssertionFailure() << "Expected face " << f_it->idx() << " not found in actual mesh.";
+        if (!found) {
+            is_failure = true;
+            failure << "Expected face " << f_it->idx() << " not found in actual mesh.";
+        }
     }
 
-    return ::testing::AssertionSuccess();
+    if (is_failure)
+        return failure;
+    else
+        return ::testing::AssertionSuccess() << "Poly meshes are equal.";
 }
 
 TEST_P(Test_Reference_Mesh, output_matches_reference) {
