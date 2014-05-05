@@ -66,7 +66,7 @@ target_link_libraries (QEx
 #
 set (QEX_COMPILE_FLAGS "-Wall")
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    set (QEX_COMPILE_FLAGS "${QEX_COMPILE_FLAGS} -msse -mfpmath=sse")
+    set (QEX_COMPILE_FLAGS "${QEX_COMPILE_FLAGS} -msse -mfpmath=sse -pedantic -Weverything")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     set (QEX_COMPILE_FLAGS "${QEX_COMPILE_FLAGS} -msse -mfpmath=sse -pedantic -Wextra")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
@@ -76,11 +76,8 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
         "ensure that the Intel compiler produces SSE code, please patch "
         "the CMakeLists.txt and inform the author <ebke@cs.rwth-aachen.de>.")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    message (WARNING
-        "You are using a Microsoft compiler which might generate x87 FPU code "
-        "that breaks the exact predicates. If you know which compiler flags "
-        "ensure that the Microsoft compiler produces SSE code, please patch "
-        "the CMakeLists.txt and inform the author <ebke@cs.rwth-aachen.de>.")
+	# There is code in exactinit() that should make sure that nor
+	# x87 extended internal precision is used.
 else ()
     message (WARNING
         "You are using an unknown compiler which might generate x87 FPU code "
