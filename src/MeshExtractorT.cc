@@ -1547,10 +1547,10 @@ generate_connections(std::vector<double>& _uv_coords)
           {
             std::cerr << "Warning: found local edge which is already connected... old: "
                       << gvertices_[target.connected_to_idx].local_edges[target.orientation_idx].connected_to_idx
-                      << ", "
+                      << " (" << gvertices_[target.connected_to_idx].typeAsString() << "), "
                       << gvertices_[target.connected_to_idx].local_edges[target.orientation_idx].orientation_idx
                       << ", new: "
-                      << i << ", " << j
+                      << i << " (" << gvertices_[j].typeAsString() << "), " << j
                       << std::endl;
             // remove found connection
             gvertices_[i].local_edges[j].connected_to_idx = LocalEdgeInfo::LECI_No_Connection;
@@ -1810,7 +1810,8 @@ find_path(const GridVertex& _gv, const LocalEdgeInfo& lei, std::vector<double>& 
 
   // #################### MAIN WALKING LOOP #######################
   // maximal number of steps as a safeguard
-  for(unsigned int steps=0; steps<100000; ++steps)
+  unsigned int walk_iterations = 0;
+  for(; walk_iterations<100000; ++walk_iterations)
   {
     // ran into a boundary?
     if(tri_mesh_.is_boundary(cur_heh))
@@ -1962,7 +1963,7 @@ find_path(const GridVertex& _gv, const LocalEdgeInfo& lei, std::vector<double>& 
         std::cerr
             << "\x1b[1;41m"
             << "Warning: find_path didn't find the point where the path "
-               "leaves a triangle in step " << steps << "." << std::endl
+               "leaves a triangle in step " << walk_iterations << "." << std::endl
             << "*********** DEBUG OUTPUT START ***********\x1b[0m" << std::endl;
         std::cerr << "triangle-path intersection: " << int(path.intersects(tri)) << std::endl;
         std::cerr << "Segment 1: " << s1 << "," << std::endl
@@ -2020,7 +2021,7 @@ find_path(const GridVertex& _gv, const LocalEdgeInfo& lei, std::vector<double>& 
           Point_2 uva(_uv_coords[2*heh_upd.idx()], _uv_coords[2*heh_upd.idx()+1]);
           HEH opp = tri_mesh_.opposite_halfedge_handle(heh_upd);
           Point_2 uvb(_uv_coords[2*opp.idx()], _uv_coords[2*opp.idx()+1]);
-          traceHistory << "* Tracing step " << steps << ": Taking edge with heh " << heh_upd.idx() << ": " << Segment_2(uva, uvb) << std::endl;
+          traceHistory << "* Tracing step " << walk_iterations << ": Taking edge with heh " << heh_upd.idx() << ": " << Segment_2(uva, uvb) << std::endl;
       }
 #endif
 
@@ -2033,7 +2034,8 @@ find_path(const GridVertex& _gv, const LocalEdgeInfo& lei, std::vector<double>& 
     }
   }
 
-  std::cerr << "Warning: find_path ended with an error" << std::endl;
+  std::cerr << "Warning: Maximum number of iterations exceeded in find_path: "
+		  << walk_iterations << " when trying to trace grid vertex " << _gv << std::endl;
 
   // return error
   return FindPathResult::Error();
