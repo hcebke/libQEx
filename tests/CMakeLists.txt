@@ -21,7 +21,9 @@
 cmake_minimum_required(VERSION 2.6)
 project(QEx_UnitTests)
 
-add_definitions(-Wall -Wextra -Wno-unused-parameter)
+if (! WIN32 )
+  add_definitions(-Wall -Wextra -Wno-unused-parameter)
+endif()
 
 FIND_PACKAGE(Threads)
 enable_testing()
