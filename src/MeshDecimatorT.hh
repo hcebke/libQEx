@@ -112,7 +112,7 @@ class MeshDecimator {
                             mesh.to_vertex_handle(he0n),
                             mesh.to_vertex_handle(he1n))) {
 #ifndef NDEBUG
-                        std::cout << "\x1b[47mDecimation: Got one ring "
+                        std::cout << "\x1b[41mDecimation: Got one ring "
                                 "intersection case.\x1b[0m" << std::endl;
 #endif
                     } else if (!mesh.is_collapse_ok(he0)) {

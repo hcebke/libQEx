@@ -273,10 +273,10 @@ void MeshExtractorT<TMeshT>::extract_transition_functions(const std::vector<doub
             HEH heh0p = tri_mesh_.prev_halfedge_handle(heh0);
             HEH heh1p = tri_mesh_.prev_halfedge_handle(heh1);
 
-            Complex l0 = uv(heh0, _uv_coords);
-            Complex l1 = uv(heh0p, _uv_coords);
-            Complex r0 = uv(heh1p, _uv_coords);
-            Complex r1 = uv(heh1, _uv_coords);
+            Complex l0 = uv_as_complex(heh0, _uv_coords);
+            Complex l1 = uv_as_complex(heh0p, _uv_coords);
+            Complex r0 = uv_as_complex(heh1p, _uv_coords);
+            Complex r1 = uv_as_complex(heh1, _uv_coords);
 
             // compute rotational part via complex numbers
             int r = ROUND_QME(2.0*std::log((r0-r1)/(l0-l1)).imag()/M_PI);
@@ -1248,6 +1248,7 @@ construct_local_edge_information_vertex(GridVertex& _gv, const std::vector<doubl
         assert(gvit != gvertices_.end());
         const size_t dist = std::distance(gvertices_.begin(), gvit);
         std::cout << "\x1b[44mGV " << dist
+                << " (" << _gv.typeAsString() << ") "
                 << " on face " << tri_mesh_.face_handle(_gv.heh).idx() << ": expected_lei_count != _gv.local_edges.size(): "
                 << expected_lei_count << " != " << _gv.local_edges.size() << ", pos_angleSum: " << pos_angleSum << "\x1b[0m" << std::endl;
     }
@@ -1547,10 +1548,10 @@ generate_connections(std::vector<double>& _uv_coords)
           {
             std::cerr << "Warning: found local edge which is already connected... old: "
                       << gvertices_[target.connected_to_idx].local_edges[target.orientation_idx].connected_to_idx
-                      << ", "
+                      << " (" << gvertices_[target.connected_to_idx].typeAsString() << "), "
                       << gvertices_[target.connected_to_idx].local_edges[target.orientation_idx].orientation_idx
                       << ", new: "
-                      << i << ", " << j
+                      << i << " (" << gvertices_[j].typeAsString() << "), " << j
                       << std::endl;
             // remove found connection
             gvertices_[i].local_edges[j].connected_to_idx = LocalEdgeInfo::LECI_No_Connection;
@@ -1789,8 +1790,14 @@ find_path(const GridVertex& _gv, const LocalEdgeInfo& lei, std::vector<double>& 
 
 #ifndef NDEBUG
   std::ostringstream traceHistory;
-  traceHistory << "* Starting trace at " << uv_from << " at GV " << _gv << "." << std::endl
-          << "  Tracing into very first triangle " << uv0 << ", " << uv1 << ", " << uv2 << std::endl;
+  traceHistory
+      << "* Starting trace at " << uv_from << " at GV " << _gv << "." << std::endl
+      << "  Tracing into very first triangle " << cur_fh.idx() << ": "
+      << uv0 << ", " << uv1 << ", " << uv2 << std::endl;
+  std::vector<int> face_hist, he_hist;
+  face_hist.reserve(100); he_hist.reserve(100);
+  face_hist.push_back(cur_fh.idx());
+  he_hist.push_back(cur_heh.idx());
 #endif
 
   // walk to next face
@@ -1805,12 +1812,14 @@ find_path(const GridVertex& _gv, const LocalEdgeInfo& lei, std::vector<double>& 
   cur_heh = tri_mesh_.opposite_halfedge_handle(cur_heh);
 
 #ifndef NDEBUG
-  traceHistory << "* Advancing over first edge, heh " << cur_heh.idx() << ": " << Segment_2(uv2, uv0) << std::endl;
+  traceHistory << "* Advancing over first edge, heh " << cur_heh.idx() << ": "
+          << Segment_2(uv2, uv0) << std::endl;
 #endif
 
   // #################### MAIN WALKING LOOP #######################
   // maximal number of steps as a safeguard
-  for(unsigned int steps=0; steps<100000; ++steps)
+  unsigned int walk_iterations = 0;
+  for(; walk_iterations<100000; ++walk_iterations)
   {
     // ran into a boundary?
     if(tri_mesh_.is_boundary(cur_heh))
@@ -1838,10 +1847,11 @@ find_path(const GridVertex& _gv, const LocalEdgeInfo& lei, std::vector<double>& 
     const ORIENTATION tri_ori = tri.orientation();
 
 #ifndef NDEBUG
-            traceHistory << "* Landed in new triangle "
-                << uv0 << ", " << uv1 << ", " << uv2
-                << " using edge " << Segment_2(uv0, uv2)
-                << std::endl;
+    traceHistory << "* Landed in new triangle " << cur_fh.idx() << ": "
+        << uv0 << ", " << uv1 << ", " << uv2 << " orientation " << tri_ori
+        << " using edge " << Segment_2(uv0, uv2)
+        << std::endl;
+    face_hist.push_back(cur_fh.idx());
 #endif
 
     if (tri_ori == ORI_ZERO) {
@@ -1867,9 +1877,10 @@ find_path(const GridVertex& _gv, const LocalEdgeInfo& lei, std::vector<double>& 
         const bool currentlyInverted = (tri_ori == ORI_NEGATIVE);
         if (currentlyInverted != inverted) {
 #ifndef NDEBUG
-            traceHistory << "* Inverting tracing direction. "
+            traceHistory << "\x1b[32;1m* Inverting tracing direction. "
                     << (inverted ? "inverted" : "regular") << " -> "
-                    << (currentlyInverted ? "inverted" : "regular") << std::endl;
+                    << (currentlyInverted ? "inverted" : "regular")
+                    << "\x1b[0m" << std::endl;
 #endif
             inverted = currentlyInverted;
             std::swap(uv_from, uv_to);
@@ -1941,28 +1952,38 @@ find_path(const GridVertex& _gv, const LocalEdgeInfo& lei, std::vector<double>& 
             return FindPathResult::Error();
         }
 
-        if( vis0 && vis1)
-            heh_upd = heh2;
-        else if( vis2 && vis1)
-            heh_upd = heh1;
-        else if(vis0)
-            heh_upd = heh1;
-        else if(vis2 || vis1)
-            heh_upd = heh2;
-        else {
-            std::cerr << "Warning: case 2 lead to impossible situation..." << std::endl;
-            #if DEBUG
-             std::cerr << debug_ss.str() << std::endl;
-            #endif
-            return FindPathResult::Error();
+#ifndef NDEBUG
+        if (vis0 && vis2) {
+            std::cerr << "Logic error: This case was just handled indirectly "
+                    "in the if-clause above. There is no way this can happen."
+                    << std::endl;
+            assert(false);
         }
+        if (vis0 && vis1 && vis2) {
+            std::cerr << "Logic error: Tracing path coincides with all "
+                    "three triangle vertices. This can only happen in "
+                    "degenerate triangles. This case was handled earlier."
+                    << std::endl;
+            assert(false);
+        }
+        if (!vis0 && !vis1 && !vis2) {
+            std::cerr << "Logic error: Tracing path does not intersect "
+                    "triangle." << std::endl;
+            assert(false);
+        }
+#endif
+
+        if (!vis0 && !vis1 && vis2)
+            heh_upd = heh1;
+        else
+            heh_upd = heh2;
       }
       else if( !is1 && !is2)
       {
         std::cerr
             << "\x1b[1;41m"
             << "Warning: find_path didn't find the point where the path "
-               "leaves a triangle in step " << steps << "." << std::endl
+               "leaves a triangle in step " << walk_iterations << "." << std::endl
             << "*********** DEBUG OUTPUT START ***********\x1b[0m" << std::endl;
         std::cerr << "triangle-path intersection: " << int(path.intersects(tri)) << std::endl;
         std::cerr << "Segment 1: " << s1 << "," << std::endl
@@ -2018,9 +2039,14 @@ find_path(const GridVertex& _gv, const LocalEdgeInfo& lei, std::vector<double>& 
 #ifndef NDEBUG
       {
           Point_2 uva(_uv_coords[2*heh_upd.idx()], _uv_coords[2*heh_upd.idx()+1]);
-          HEH opp = tri_mesh_.opposite_halfedge_handle(heh_upd);
-          Point_2 uvb(_uv_coords[2*opp.idx()], _uv_coords[2*opp.idx()+1]);
-          traceHistory << "* Tracing step " << steps << ": Taking edge with heh " << heh_upd.idx() << ": " << Segment_2(uva, uvb) << std::endl;
+          HEH prev = tri_mesh_.prev_halfedge_handle(heh_upd);
+          Point_2 uvb(_uv_coords[2*prev.idx()], _uv_coords[2*prev.idx()+1]);
+          traceHistory << "* Tracing step " << walk_iterations
+                  << ": Taking edge with heh " << heh_upd.idx() << ": "
+                  << Segment_2(uvb, uva)
+                  << "  is1: " << (is1 ? "true" : "false")
+                  << ",  is2: " << (is2 ? "true" : "false") << std::endl;
+          he_hist.push_back(heh_upd.idx());
       }
 #endif
 
@@ -2033,7 +2059,52 @@ find_path(const GridVertex& _gv, const LocalEdgeInfo& lei, std::vector<double>& 
     }
   }
 
-  std::cerr << "Warning: find_path ended with an error" << std::endl;
+  std::cerr << "\x1b[41mWarning: Maximum number of iterations exceeded in "
+            "find_path. Diagnostics follow." << std::endl
+            << "\x1b[41m--------------------------------------------------"
+            "------------------------------\x1b[0m" << std::endl
+            << "walk_iterations: " << walk_iterations << std::endl
+            << "start gv (_gv): " << _gv << std::endl
+            << "trace lei: " << lei << std::endl
+            << "uv coords of _gv.heh and previous ("
+            << uv_as_vec2d(_gv.heh, _uv_coords) << "), ("
+            << uv_as_vec2d(tri_mesh_.prev_halfedge_handle(_gv.heh), _uv_coords)
+            << ")" << std::endl;
+#ifndef NDEBUG
+  {
+      size_t cnt = 150;
+      std::cerr << "Outputting first " << cnt << " faces: " << std::endl;
+      for (std::vector<int>::const_iterator it = face_hist.begin(),
+              it_end = face_hist.end(); it != it_end && cnt; --cnt, ++it) {
+          std::cerr << *it;
+          if (cnt > 1) std::cerr << ", ";
+      }
+  }
+  std::cerr << std::endl;
+  {
+      size_t cnt = 150;
+      std::cerr << "Outputting first " << cnt << " halfedges: " << std::endl;
+      for (std::vector<int>::const_iterator it = he_hist.begin(),
+              it_end = he_hist.end(); it != it_end && cnt; --cnt, ++it) {
+          std::cerr << *it;
+          if (cnt > 1) std::cerr << ", ";
+      }
+  }
+  std::cerr << std::endl;
+  std::istringstream th(traceHistory.str());
+  std::cerr << "Outputting first 200 lines of trace history." << std::endl
+            << "--------------------------------------------------"
+            "------------------------------" << std::endl;
+
+  for (int i = 0; i < 200 && !th.eof(); ++i) {
+      std::string line;
+      std::getline(th, line);
+      std::cerr << line << std::endl;
+  }
+  std::cerr << "\x1b[0m";
+#endif
+  std::cerr << "\x1b[41m--------------------------------------------------"
+            "------------------------------\x1b[0m" << std::endl;
 
   // return error
   return FindPathResult::Error();
