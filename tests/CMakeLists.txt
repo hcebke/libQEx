@@ -21,7 +21,7 @@
 cmake_minimum_required(VERSION 2.6)
 project(QEx_UnitTests)
 
-if (! WIN32 )
+if (NOT WIN32)
   add_definitions(-Wall -Wextra -Wno-unused-parameter)
 endif()
 
