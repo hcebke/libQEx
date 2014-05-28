@@ -43,11 +43,12 @@ void printUsage(const std::string &cmd) {
 #endif
     std::cout << "Usage: "
             << basename
-            << " <infile> <outfile>" << std::endl
+            << " <infile> <outfile> [<vertex valences>]" << std::endl
             << std::endl
             << "Reads the mesh with face-based UVs from <infile> which must be an" << std::endl
             << "OBJ file extracts the quad mesh from the UVs and stores the resulting" << std::endl
-            << "mesh into <outfile> in OBJ format." << std::endl;
+            << "mesh into <outfile> in OBJ format. Optionally reads vertex valences in" << std::endl
+            << "VVAL file format from file <vertex valences>." << std::endl;
 }
 
 bool infileGood(const std::string &filePath) {
@@ -60,8 +61,45 @@ bool outfileGood(const std::string &filePath) {
     return is.good();
 }
 
+bool read_vertex_valences(const char *file_name,
+        size_t expected_vertex_count,
+        std::vector<unsigned int> &out_vertex_valences) {
+
+    std::ifstream is(file_name);
+    std::string header;
+
+    static const char *EXPECTED_HEADER =
+        "{\"file_format\":\"VVAL\",\"version\":1}";
+    std::getline(is, header);
+    if (header != EXPECTED_HEADER) {
+        std::cerr << "Error when reading vertex valence file: "
+                "Unexpected file format." << std::endl;
+        return false;
+    }
+
+    size_t vertex_count;
+    is >> vertex_count;
+    if (vertex_count != expected_vertex_count) {
+        std::cerr << "Error when reading vertex valence file: "
+                "Unexpected number of vertices. Expected: " <<
+                expected_vertex_count << ", actual: " <<
+                vertex_count << "." << std::endl;
+        return false;
+    }
+
+    out_vertex_valences.clear();
+    out_vertex_valences.reserve(vertex_count);
+    for (; vertex_count; --vertex_count) {
+        int val;
+        is >> val;
+        out_vertex_valences.push_back(val);
+    }
+
+    return true;
+}
+
 int main(int argc, const char *argv[]) {
-    if (argc != 3) {
+    if (argc != 3 && argc != 4) {
         printUsage(argv[0]);
         return 1;
     }
@@ -74,6 +112,11 @@ int main(int argc, const char *argv[]) {
     if (!outfileGood(argv[2])) {
         std::cout << "Can't write output file." << std::endl;
         return 3;
+    }
+
+    if (argc >= 4 && !infileGood(argv[3])) {
+        std::cout << "Can't read vertex valences file." << std::endl;
+        return 4;
     }
 
     /*
@@ -96,8 +139,15 @@ int main(int argc, const char *argv[]) {
         uvVector.push_back(uv);
     }
 
+    std::vector<unsigned int> vertex_valences;
+    if (argc >= 4) {
+        if (!read_vertex_valences(argv[3], inputMesh.n_vertices(),
+                vertex_valences)) return 5;
+    }
+
     QuadMesh out;
-    extractQuadMeshOMT(&inputMesh, &uvVector, 0, &out);
+    extractQuadMeshOMT(&inputMesh, &uvVector,
+            (vertex_valences.empty() ? 0 : &vertex_valences), &out);
 
     /*
      * Write output mesh.
