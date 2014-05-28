@@ -564,8 +564,12 @@ class MeshExtractorT {
         }
 
         // get uv-coordinates of halfedge
-        Complex uv(const HEH& _heh, const std::vector<double>& _uv_coords) {
+        Complex uv_as_complex(const HEH& _heh, const std::vector<double>& _uv_coords) {
             return Complex(_uv_coords[2 * _heh.idx()], _uv_coords[2 * _heh.idx() + 1]);
+        }
+
+        Vec2d uv_as_vec2d(const HEH &_heh, const std::vector<double>& _uv_coords) {
+            return Vec2d(_uv_coords[2 * _heh.idx()], _uv_coords[2 * _heh.idx() + 1]);
         }
 
         // get transition function around vertex (if non-boundary vertex, otherwise return identity)
