@@ -439,8 +439,7 @@ class Triangle_2 {
 
         Point_2 a, b, c;
 
-        template<typename STREAM>
-        friend STREAM &operator<<(STREAM &s, const Triangle_2 &t) {
+        friend std::ostream &operator<<(std::ostream &s, const Triangle_2 &t) {
             return s << "Triangle_2(" << t.a << ", " << t.b << ", " << t.c << ")";
         }
 };
