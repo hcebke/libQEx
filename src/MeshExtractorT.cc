@@ -1900,11 +1900,11 @@ find_path(const GridVertex& _gv, const LocalEdgeInfo& lei, std::vector<double>& 
     if (tri_ori == ORI_ZERO) {
         if (uv0 != uv1 && uv1 != uv2 && uv2 != uv0) {
             std::cerr
-                << "\x1b[41mLogic error: Traced into degenerate triangle (a"
+                << "\x1b[41mLogic error: Traced into degenerate triangle (a "
                    "cap). This shouldn't be possible.\x1b[0m"
                 << std::endl;
-            assert(false);
-            return FindPathResult::Signal(LocalEdgeInfo::LECI_Traced_Into_Degeneracy);
+            //assert(false);
+            //return FindPathResult::Signal(LocalEdgeInfo::LECI_Traced_Into_Degeneracy);
         } else {
             std::cerr << "\x1b[41mEdges degenerated to a point should have "
                     << std::endl <<
@@ -1984,42 +1984,13 @@ find_path(const GridVertex& _gv, const LocalEdgeInfo& lei, std::vector<double>& 
         const bool vis1 = path.has_on(uv1);
         const bool vis2 = path.has_on(uv2);
 
-        if (orient2d(uv0, uv2, path[0]) == ORI_COLLINEAR &&
-                orient2d(uv0, uv2, path[1]) == ORI_COLLINEAR) {
-            std::cerr << "Logic error: Path parallel to edge we entered the "
-                    "triangle over should be impossible by construction."
-                    << std::endl;
-            std::cerr << "Debug info:" << std::endl
-                    << "vis{0,1,2} = " << vis0 << ", " << vis1
-                        << ", " << vis2 << std::endl
-                    << "is1, is2 = " << is1 << ", " << is2 << std::endl
-                    << "uv{0,1,2} = " << uv0 << ", " << uv1
-                    << ", " << uv2 << "" << std::endl
-                    << "path = " << path[0] << " -> " << path[1] << std::endl
-                    << "orient2d(uv0, uv2, path[0]) = " << static_cast<int>(
-                            orient2d(uv0, uv2, path[0])) << std::endl
-                    << "orient2d(uv0, uv2, path[1]) = " << static_cast<int>(
-                            orient2d(uv0, uv2, path[1])) << std::endl
-                    << "tri_ori = " << tri_ori << std::endl
-                    ;
-            assert(false);
-            // return error
-            return FindPathResult::Error();
-        }
-
 #ifndef NDEBUG
-        if (vis0 && vis2) {
-            std::cerr << "Logic error: This case was just handled indirectly "
-                    "in the if-clause above. There is no way this can happen."
-                    << std::endl;
-            assert(false);
-        }
         if (vis0 && vis1 && vis2) {
             std::cerr << "Logic error: Tracing path coincides with all "
                     "three triangle vertices. This can only happen in "
                     "degenerate triangles. This case was handled earlier."
                     << std::endl;
-            assert(false);
+            //assert(false);
         }
         if (!vis0 && !vis1 && !vis2) {
             std::cerr << "Logic error: Tracing path does not intersect "
@@ -2028,10 +1999,20 @@ find_path(const GridVertex& _gv, const LocalEdgeInfo& lei, std::vector<double>& 
         }
 #endif
 
-        if (!vis0 && !vis1 && vis2)
+        if (!vis0 && !vis1 && vis2) {
             heh_upd = heh1;
-        else
+        } else if (vis0 && vis2) {
+            /*
+             * Were on cur_heh. Check whether we have to leave through
+             * heh1 or heh2
+             */
+            if (orient2d(path[0], path[1], uv1) == tri_ori)
+                heh_upd = heh1;
+            else
+                heh_upd = heh2;
+        } else {
             heh_upd = heh2;
+        }
       }
       else if( !is1 && !is2)
       {
