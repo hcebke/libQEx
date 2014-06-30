@@ -49,10 +49,10 @@ link_directories (
     )
 
 add_library (QEx SHARED ${SOURCES})
+add_library (QExStatic STATIC ${SOURCES})
 
-target_link_libraries (QEx
-    ${LIBRARIES}
-    )
+target_link_libraries (QEx ${LIBRARIES})
+target_link_libraries (QExStatic ${LIBRARIES})
 
 #
 # In order for the exact predicates to work the compiler
@@ -94,6 +94,11 @@ if (STL_RANGE_CHECKS)
 endif()
 
 set_target_properties (QEx
+    PROPERTIES
+    COMPILE_FLAGS "${QEX_COMPILE_FLAGS}"
+    )
+
+set_target_properties (QExStatic
     PROPERTIES
     COMPILE_FLAGS "${QEX_COMPILE_FLAGS}"
     )
