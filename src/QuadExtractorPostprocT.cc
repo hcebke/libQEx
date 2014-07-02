@@ -217,7 +217,7 @@ bool QuadExtractorPostprocT<MeshT>::simplify_face(const std::vector<std::pair<VH
 
                 const ptrdiff_t dist = std::distance(v1_it, v2_it);
                 assert(dist > 0);
-                if (std::abs(idealLength - dist) < std::abs(idealLength - sequenceLength)) {
+                if (std::labs(idealLength - dist) < std::labs(idealLength - sequenceLength)) {
                     sequenceLength = dist;
                     seq_begin = v1_it;
                     seq_end = v2_it;
