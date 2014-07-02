@@ -96,11 +96,13 @@ endif()
 set_target_properties (QEx
     PROPERTIES
     COMPILE_FLAGS "${QEX_COMPILE_FLAGS}"
+    DEFINE_SYMBOLS "-DQEX_EXPORT_SYMBOLS"
     )
 
 set_target_properties (QExStatic
     PROPERTIES
     COMPILE_FLAGS "${QEX_COMPILE_FLAGS}"
+    DEFINE_SYMBOLS "-DQEX_EXPORT_SYMBOLS"
     )
 
 #

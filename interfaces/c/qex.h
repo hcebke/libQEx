@@ -23,12 +23,25 @@
 #ifndef QEX_H_INCLUDED
 #define QEX_H_INCLUDED
 
+#ifndef DLLEXPORT
+    #ifdef WIN32
+        #ifdef QEX_EXPORT_SYMBOLS
+            #define DLLEXPORT __declspec(dllexport)
+        #else
+            #define DLLEXPORT __declspec(dllimport)
+        #endif
+    #else
+        #define DLLEXPORT
+    #endif
+#endif
+
 #ifdef __cplusplus
 #include <cstddef>
 #include <OpenMesh/Core/Mesh/Traits.hh>
 #include <OpenMesh/Core/Mesh/PolyMesh_ArrayKernelT.hh>
 #include <OpenMesh/Core/Mesh/TriMesh_ArrayKernelT.hh>
 #include <vector>
+
 
 extern "C" {
 
@@ -66,7 +79,7 @@ typedef const std::vector<OpenMesh::Vec2d> *const_UVVector_t;
  * @param in_vertexValences The vertex valences. Optional. Precondition: in_vertexValences == 0 || in_vertexValences->size() == in_triMesh->n_vertices()
  * @param out_quadMesh The result will be output into the supplied quad mesh.
  */
-void extractQuadMeshOM(TriMesh_t in_triMesh, const_UVVector_t in_uvs, const_ValenceVector_t in_vertexValences, QuadMesh_t out_quadMesh);
+DLLEXPORT void extractQuadMeshOM(TriMesh_t in_triMesh, const_UVVector_t in_uvs, const_ValenceVector_t in_vertexValences, QuadMesh_t out_quadMesh);
 
 } /* namespace QEx */
 
@@ -134,7 +147,7 @@ typedef struct {
  * @param out_quadMesh A pointer to a qex_QuadMesh struct. The qex_QuadMesh has to be uninitialized.
  * It is the responsibility of the caller to free() the vertices and quads members that are returned.
  */
-void qex_extractQuadMesh(qex_TriMesh const * in_triMesh, qex_Valence *in_vertexValences, qex_QuadMesh * out_quadMesh);
+DLLEXPORT void qex_extractQuadMesh(qex_TriMesh const * in_triMesh, qex_Valence *in_vertexValences, qex_QuadMesh * out_quadMesh);
 
 #ifdef __cplusplus
 } // extern "C"
@@ -172,6 +185,7 @@ class PropMgr {
  * @param out_quadMesh @see extractQuadMeshOM()
  * @param heLocalUvProp A property manager used to store the local UVs for later processing.
  */
+DLLEXPORT
 void extractPolyMesh(TriMesh_t in_triMesh, const_UVVector_t in_uvs,
                      const_ValenceVector_t in_vertexValences,
                      QuadMesh_t out_quadMesh,
@@ -185,6 +199,7 @@ void extractPolyMesh(TriMesh_t in_triMesh, const_UVVector_t in_uvs,
  * @param inout_polyMesh The poly mesh which will be transformed into a quad mesh.
  * @param heLocalUvProp The local UVs used to perform the merging.
  */
+DLLEXPORT
 void mergePolyToQuad(QuadMesh_t inout_polyMesh,
                      QEx::PropMgr<QuadMesh>::LocalUvsPropertyManager &heLocalUvProp);
 
@@ -193,6 +208,7 @@ void mergePolyToQuad(QuadMesh_t inout_polyMesh,
  * @see extractQuadMeshOM
  */
 template<typename TriMeshT, typename QuadMeshT>
+DLLEXPORT
 inline void extractQuadMeshOMT(TriMeshT *in_triMesh, const_UVVector_t in_uvs,
                                const_ValenceVector_t in_vertexValences,
                                QuadMeshT *out_quadMesh) {
@@ -202,6 +218,7 @@ inline void extractQuadMeshOMT(TriMeshT *in_triMesh, const_UVVector_t in_uvs,
 }
 
 template<typename TriMeshT, typename QuadMeshT>
+DLLEXPORT
 void extractPolyMeshT(TriMeshT *in_triMesh, const_UVVector_t in_uvs, const_ValenceVector_t in_vertexValences,
                       QuadMeshT *out_quadMesh, typename QEx::PropMgr<QuadMeshT>::LocalUvsPropertyManager &heLocalUvProp) {
     extractPolyMesh(OpenMesh::MeshCast<TriMesh_t, TriMeshT*>::cast(in_triMesh),
@@ -223,6 +240,7 @@ void extractPolyMeshT(TriMeshT *in_triMesh, const_UVVector_t in_uvs, const_Valen
 }
 
 template<typename QuadMeshT>
+DLLEXPORT
 void mergePolyToQuadT(QuadMeshT *inout_polyMesh, typename QEx::PropMgr<QuadMeshT>::LocalUvsPropertyManager &heLocalUvProp) {
     mergePolyToQuad(OpenMesh::MeshCast<QuadMesh_t, QuadMeshT*>::cast(inout_polyMesh),
 
