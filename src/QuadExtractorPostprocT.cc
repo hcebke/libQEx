@@ -223,7 +223,7 @@ bool QuadExtractorPostprocT<MeshT>::simplify_face(const std::vector<std::pair<VH
                     seq_end = v2_it;
                 }
 
-                if (std::abs(idealLength - (currentFace.size() - dist)) < std::abs(idealLength - sequenceLength)) {
+                if (std::labs(idealLength - (currentFace.size() - dist)) < std::labs(idealLength - sequenceLength)) {
                     assert(static_cast<size_t>(dist) <= currentFace.size());
                     sequenceLength = currentFace.size() - dist;
                     seq_begin = v2_it;
