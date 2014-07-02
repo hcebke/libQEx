@@ -208,7 +208,6 @@ void mergePolyToQuad(QuadMesh_t inout_polyMesh,
  * @see extractQuadMeshOM
  */
 template<typename TriMeshT, typename QuadMeshT>
-DLLEXPORT
 inline void extractQuadMeshOMT(TriMeshT *in_triMesh, const_UVVector_t in_uvs,
                                const_ValenceVector_t in_vertexValences,
                                QuadMeshT *out_quadMesh) {
@@ -218,7 +217,6 @@ inline void extractQuadMeshOMT(TriMeshT *in_triMesh, const_UVVector_t in_uvs,
 }
 
 template<typename TriMeshT, typename QuadMeshT>
-DLLEXPORT
 void extractPolyMeshT(TriMeshT *in_triMesh, const_UVVector_t in_uvs, const_ValenceVector_t in_vertexValences,
                       QuadMeshT *out_quadMesh, typename QEx::PropMgr<QuadMeshT>::LocalUvsPropertyManager &heLocalUvProp) {
     extractPolyMesh(OpenMesh::MeshCast<TriMesh_t, TriMeshT*>::cast(in_triMesh),
@@ -240,7 +238,6 @@ void extractPolyMeshT(TriMeshT *in_triMesh, const_UVVector_t in_uvs, const_Valen
 }
 
 template<typename QuadMeshT>
-DLLEXPORT
 void mergePolyToQuadT(QuadMeshT *inout_polyMesh, typename QEx::PropMgr<QuadMeshT>::LocalUvsPropertyManager &heLocalUvProp) {
     mergePolyToQuad(OpenMesh::MeshCast<QuadMesh_t, QuadMeshT*>::cast(inout_polyMesh),
 
