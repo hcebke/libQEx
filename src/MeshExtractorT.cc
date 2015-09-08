@@ -37,6 +37,7 @@
 #include <set>
 #include <stdexcept>
 #include <OpenMesh/Core/Utils/PropertyManager.hh>
+#include <iostream>
 
 #define ROUND_QME(x) ((x)<0?int((x)-0.5):int((x)+0.5))
 
