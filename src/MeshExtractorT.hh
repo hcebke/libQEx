@@ -38,6 +38,9 @@
 #include <complex>
 #include <limits>
 #include <ostream>
+#ifndef NDEBUG
+#include <iostream>
+#endif
 
 namespace QEx {
 
