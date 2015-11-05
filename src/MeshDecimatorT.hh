@@ -117,7 +117,9 @@ class MeshDecimator {
                                 "intersection case.\x1b[0m" << std::endl;
 #endif
                     } else if (!mesh.is_collapse_ok(he0)) {
+#ifndef NDEBUG
                         std::cout << "\x1b[41mSkipping non-ok collapse.\x1b[0m" << std::endl;
+#endif
                     } else {
                         ++dec_counter;
 
