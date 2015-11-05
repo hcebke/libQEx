@@ -33,7 +33,7 @@ file(GLOB TEST_MESHES meshes/*.obj)
 
 file(COPY ${TEST_MESHES} DESTINATION ${CMAKE_BINARY_DIR}/meshes)
 
-include_directories("${GTEST_DIR}/include" ${OPENMESH_INCLUDE_DIR})
+include_directories("${GTEST_DIR}/include" ${OPENMESH_INCLUDE_DIR} "../interfaces/c/")
 add_executable(QEx_tests ${TEST_SOURCES})
 target_link_libraries(QEx_tests
     gtest QEx ${OPENMESH_LIBRARY} ${CMAKE_THREAD_LIBS_INIT}
