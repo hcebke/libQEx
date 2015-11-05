@@ -26,6 +26,7 @@
 #include <stack>
 #include <functional>
 #include <stdlib.h>
+#include <cstdlib>
 
 namespace QEx {
 
@@ -206,8 +207,8 @@ bool QuadExtractorPostprocT<MeshT>::simplify_face(const std::vector<std::pair<VH
     while (!bfs.empty()) {
         VEC_PVH2I currentFace = bfs.top(); bfs.pop();
 
-        size_t sequenceLength = currentFace.size();
-        const int idealLength = static_cast<int>(sequenceLength)/2;
+        ptrdiff_t sequenceLength = static_cast<ptrdiff_t>(currentFace.size());
+        const ptrdiff_t idealLength = sequenceLength / 2;
         typename VEC_PVH2I::iterator seq_begin = currentFace.begin(),
                 seq_end = currentFace.end();
 
@@ -215,15 +216,16 @@ bool QuadExtractorPostprocT<MeshT>::simplify_face(const std::vector<std::pair<VH
             for (typename VEC_PVH2I::iterator v2_it = v1_it + 1, v2_end = currentFace.end(); v2_it != v2_end; ++v2_it) {
                 if (v1_it->first != v2_it->first) continue;
 
-                const int dist = std::distance(v1_it, v2_it);
+                const ptrdiff_t dist = std::distance(v1_it, v2_it);
                 assert(dist > 0);
-                if (abs(idealLength - dist) < labs(idealLength - sequenceLength)) {
+                if (std::labs(idealLength - dist) < std::labs(idealLength - sequenceLength)) {
                     sequenceLength = dist;
                     seq_begin = v1_it;
                     seq_end = v2_it;
                 }
 
-                if (labs(idealLength - (currentFace.size() - dist)) < labs(idealLength - sequenceLength)) {
+                if (std::labs(idealLength - (currentFace.size() - dist)) < std::labs(idealLength - sequenceLength)) {
+                    assert(static_cast<size_t>(dist) <= currentFace.size());
                     sequenceLength = currentFace.size() - dist;
                     seq_begin = v2_it;
                     seq_end = v1_it;
@@ -233,7 +235,7 @@ bool QuadExtractorPostprocT<MeshT>::simplify_face(const std::vector<std::pair<VH
 
         if (seq_end == currentFace.end()) {
             assert(seq_begin == currentFace.begin());
-            assert(sequenceLength == currentFace.size());
+            assert(static_cast<size_t>(sequenceLength) == currentFace.size());
 #ifndef XNDEBUG
             if (sequenceLength != 4 && sequenceLength > 2) {
                 std::cerr << "WARNING: Subsequence length was " << sequenceLength << " out of " << currentFace.size() << std::endl;
@@ -254,7 +256,7 @@ bool QuadExtractorPostprocT<MeshT>::simplify_face(const std::vector<std::pair<VH
         } else {
             // Split face.
 
-            assert(sequenceLength < currentFace.size());
+            assert(static_cast<size_t>(sequenceLength) < currentFace.size());
             std::rotate(currentFace.begin(), seq_end, currentFace.end());
 
             bfs.push(VEC_PVH2I(currentFace.end() - sequenceLength, currentFace.end()));

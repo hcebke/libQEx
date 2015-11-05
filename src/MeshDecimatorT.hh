@@ -24,6 +24,7 @@
 
 #include "../interfaces/c/qex.h"
 #include "Globals.hh"
+#include <iostream>
 
 namespace QEx {
 

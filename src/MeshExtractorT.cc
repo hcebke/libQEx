@@ -32,6 +32,7 @@
 #include <math.h>
 #include <cmath>
 #include <sstream>
+#include <iostream>
 #include <map>
 #include <set>
 #include <stdexcept>
