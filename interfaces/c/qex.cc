@@ -145,7 +145,7 @@ void qex_extractQuadMesh(qex_TriMesh const * in_triMesh, qex_Valence *in_vertexV
     qex_Point3 *out_vtx = out_quadMesh->vertices;
     for (QEx::QuadMesh::VertexIter v_it = quadMesh.vertices_begin(), v_end = quadMesh.vertices_end(); v_it != v_end; ++v_it, ++out_vtx) {
         const QEx::QuadMesh::Point cur_point = quadMesh.point(*v_it);
-        std::copy(cur_point.values_, cur_point.values_ + 3, out_vtx->x);
+        std::copy(cur_point.data(), cur_point.data() + 3, out_vtx->x);
     }
 
     /*
