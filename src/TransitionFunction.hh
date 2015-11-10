@@ -89,6 +89,18 @@ class TransitionFunctionT {
             _v += tv;
         }
 
+        template<class VType>
+        inline void transform_point(std::complex<VType> &rhs) const {
+            /*
+             * This is the standard conforming way of accessing the real
+             * and imaginary part of a std::complex.
+             * See http://en.cppreference.com/w/cpp/numeric/complex
+             */
+            transform_point(
+                    reinterpret_cast<VType(&)[2]>(rhs)[0],
+                    reinterpret_cast<VType(&)[2]>(rhs)[1]);
+        }
+
         // transform uv-coords for 2D-type TF(u) = R^r(u)
         template<class VType2>
         inline void transform_vector(VType2& _uv) const {

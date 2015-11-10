@@ -295,21 +295,21 @@ void MeshExtractorT<TMeshT>::extract_transition_functions(const std::vector<doub
             Complex r0d(r0);
             Complex r1d(r1);
 
-            tf_[e_it->idx()].transform_point(l0d.real(), l0d.imag());
+            tf_[e_it->idx()].transform_point(l0d);
             if (std::norm(l0d - r0) > 1e-6)
                 std::cerr << "ERROR in transition function: " << std::norm(l0d - r0) << std::endl;
             else
                 ++n_valid;
-            tf_[e_it->idx()].transform_point(l1d.real(), l1d.imag());
+            tf_[e_it->idx()].transform_point(l1d);
             if (std::norm(l1d - r1) > 1e-6)
                 std::cerr << "ERROR in transition function: " << std::norm(l1d - r1) << std::endl;
             else
                 ++n_valid;
             // check inverse transition functions
-            tf_[e_it->idx()].inverse().transform_point(r0d.real(), r0d.imag());
+            tf_[e_it->idx()].inverse().transform_point(r0d);
             if (std::norm(l0 - r0d) > 1e-6)
                 std::cerr << "ERROR in inverse transition function: " << std::norm(l0 - r0d) << std::endl;
-            tf_[e_it->idx()].inverse().transform_point(r1d.real(), r1d.imag());
+            tf_[e_it->idx()].inverse().transform_point(r1d);
             if (std::norm(l1 - r1d) > 1e-6)
                 std::cerr << "ERROR in inverse transition function: " << std::norm(l1 - r1d) << std::endl;
 #endif
@@ -349,8 +349,8 @@ void MeshExtractorT<TMeshT>::consistent_truncation(
                 Complex r1 = uv_as_complex(heh1, _uv_coords);
 
                 // transfrom left to right
-                tf_[e_it->idx()].transform_point(l0.real(), l0.imag());
-                tf_[e_it->idx()].transform_point(l1.real(), l1.imag());
+                tf_[e_it->idx()].transform_point(l0);
+                tf_[e_it->idx()].transform_point(l1);
 
                 if (l0 != r0 || l1 != r1) {
                     max_abs_diff = std::max(max_abs_diff, std::norm(l0 - r0));
@@ -496,8 +496,8 @@ void MeshExtractorT<TMeshT>::consistent_truncation(
                 Complex r1 = uv_as_complex(heh1, _uv_coords);
 
                 // transfrom left to right
-                tf_[e_it->idx()].transform_point(l0.real(), l0.imag());
-                tf_[e_it->idx()].transform_point(l1.real(), l1.imag());
+                tf_[e_it->idx()].transform_point(l0);
+                tf_[e_it->idx()].transform_point(l1);
 
                 if (l0 != r0 || l1 != r1) {
                     std::cerr << "ERROR: values are not identical after preprocessing, diffs are "
