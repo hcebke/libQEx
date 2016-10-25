@@ -96,11 +96,20 @@ class MeshDecimator {
                     idx0 = he0.idx(), idx0p = he0p.idx(),
                     idx1 = he1.idx(), idx1p = he1p.idx();
 
-                const OpenMesh::Vec2d
+                OpenMesh::Vec2d
                     uv0(uvs[2 * idx0], uvs[2 * idx0 + 1]),
                     uv0p(uvs[2 * idx0p], uvs[2 * idx0p + 1]),
                     uv1(uvs[2 * idx1], uvs[2 * idx1 + 1]),
                     uv1p(uvs[2 * idx1p], uvs[2 * idx1p + 1]);
+
+                // Disregard UVs of boundary edges.
+                if (mesh.is_boundary(he0)) {
+                    uv0 = uv1p;
+                    uv0p = uv1;
+                } else if (mesh.is_boundary(he1)) {
+                    uv1 = uv0p;
+                    uv1p = uv0;
+                }
 
                 if (uv0 == uv0p || uv1 == uv1p) {
                     const typename MeshT::HalfedgeHandle
